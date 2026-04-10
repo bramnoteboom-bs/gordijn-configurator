@@ -412,7 +412,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
 /* Order confirm modal */
 .order-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
 .order-confirm-overlay.open{display:flex;}
-.order-confirm-modal{background:white;border-radius:18px;width:560px;max-width:94vw;max-height:88vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.22);animation:fadeUp 0.35s ease;}
+.order-confirm-modal{background:white;border-radius:18px;width:560px;max-width:94vw;max-height:88vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.22);animation:fadeUp 0.35s ease;position:relative;}
 .ocm-header{padding:36px 36px 0;text-align:center;}
 .ocm-icon{width:64px;height:64px;border-radius:50%;background:rgba(90,122,95,0.12);border:2px solid rgba(90,122,95,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
 .ocm-icon svg{width:32px;height:32px;color:var(--green);}
@@ -831,6 +831,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
 <!-- ══ ORDER BEVESTIGING MODAL ══ -->
 <div class="order-confirm-overlay" id="orderConfirmOverlay">
   <div class="order-confirm-modal">
+    <button onclick="closeOrderConfirm()" style="position:absolute;top:14px;right:14px;width:32px;height:32px;background:var(--surface);border:1px solid var(--border);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;color:var(--text-mid);font-size:18px;line-height:1;transition:all 0.2s" onmouseover="this.style.background='var(--terracotta)';this.style.color='white';this.style.borderColor='var(--terracotta)'" onmouseout="this.style.background='var(--surface)';this.style.color='var(--text-mid)';this.style.borderColor='var(--border)'" title="Sluiten (Esc)" aria-label="Sluiten">✕</button>
     <div class="ocm-header">
       <div class="ocm-icon"><svg viewBox="0 0 36 36" fill="none"><path d="M7 18l7 7 15-14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="ocm-title">Order bevestigd</div>
@@ -917,9 +918,9 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
   </div>
 </div>
 
-<script async src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
-<script async src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script async src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
 // ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -2096,6 +2097,23 @@ function closeModal() { document.getElementById('modalOverlay').classList.remove
 function doPrint(type) { const badge=document.getElementById('printModeBadge');const meta=document.getElementById('printHeaderMeta');if(badge)badge.textContent=type==='atelier'?'Werkbon Atelier':'Bestelformulier Klant';if(meta)meta.textContent=`${APP.stap1.ruimte||'—'} · ${VESTIGING_LABELS[APP.stap1.vestiging]||'—'} · ${new Date().toLocaleDateString('nl-NL')}`;document.body.setAttribute('data-print',type||'klant');window.print();setTimeout(()=>document.body.removeAttribute('data-print'),2000); }
 function generateOrderNr() { const d=new Date();return `BS-${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*9000)+1000)}`; }
 function closeOrderConfirm() { document.getElementById('orderConfirmOverlay').classList.remove('open');document.body.style.overflow=''; }
+
+// Sluit modal met Escape-toets
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('orderConfirmOverlay')?.classList.contains('open')) {
+    closeOrderConfirm();
+  }
+});
+
+// Sluit modal door op de overlay (achtergrond) te klikken
+document.addEventListener('DOMContentLoaded', function() {
+  const overlay = document.getElementById('orderConfirmOverlay');
+  if (overlay) {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) closeOrderConfirm();
+    });
+  }
+});
 function startNieuweOrder() { closeOrderConfirm();SESSION_ORDERS.length=0;APP.stap1={fabric:null,ruimte:'',commissie:'',vestiging:''};APP.stap2={model:null};APP.stap3={maten:{gekanteld:false},zoomen:{...HC_DEFAULTS},typeSpecific:{},verdeling:'',afwerking:{}};deviations.clear();document.getElementById('s1Ruimte').value='';document.getElementById('s1Commissie').value='';document.getElementById('s1Vestiging').selectedIndex=0;document.getElementById('s1Search').value='';document.getElementById('s1Banner').classList.remove('visible');document.getElementById('modelDetail').classList.remove('visible');document.getElementById('s3Accordions').innerHTML='';document.getElementById('calcContent').innerHTML='';const tb=document.getElementById('calcTotaalBar');if(tb)tb.style.display='none';const tbs=document.getElementById('topbarSession');if(tbs)tbs.style.display='none';filterFabrics();renderModels();updateSections();updateSelSummary();window.scrollTo(0,0); }
 
 // ══ CONFECTIEBON PDF GENERATIE (A5) ══
@@ -2598,10 +2616,6 @@ async function finalizeSessie() {
   // ── Stap 4: Planner-taken versturen (indien actief) ──
   let plannerStatus = 'skipped';
   if (M365_CONFIG.M365_ENABLED && M365_CONFIG.POWER_AUTOMATE_WEBHOOK) {
-    // DEBUG: Check PDF status voor verzending
-    const debugInfo = SESSION_ORDERS.map((o, i) => `Bon ${i+1}: confectieBonPdf=${o.confectieBonPdf ? `${o.confectieBonPdf.length} chars` : 'LEEG/MISSEND'}, jspdf geladen=${!!window.jspdf}`).join('\n');
-    alert(`DEBUG vóór verzending naar Power Automate:\n\n${debugInfo}\n\nKlik OK om door te gaan.`);
-
     plannerStatus = 'success';
     for (const order of SESSION_ORDERS) {
       try {
