@@ -1133,7 +1133,7 @@ async function loadFabricsFromSharePoint() {
   const url = M365_CONFIG.SHAREPOINT_FABRICS_URL;
   if (!url) return;
   try {
-    const resp = await fetch(url, { method: 'GET' });
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     const items = Array.isArray(data) ? data : data.value || [];
