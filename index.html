@@ -2842,7 +2842,7 @@ function downloadTemplate(){const csv='naam,type,materiaal,artikelnr,prijsPerMet
 //    Settings-paneel, webhook, testorder, JSON-schema.
 // ══════════════════════════════════════════════════════════════════════════════
 
-const M365_CONFIG = { M365_ENABLED: false, POWER_AUTOMATE_WEBHOOK: '', SHAREPOINT_FABRICS_URL: '', MSAL_CLIENT_ID: '', MSAL_TENANT_ID: '' };
+const M365_CONFIG = { M365_ENABLED: true, POWER_AUTOMATE_WEBHOOK: 'https://default26aa0fe8138843a3801573bd138681.b9.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/94f405d323c64af7af0914fd217e278f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=DToBnCe6_TMwcjHIg5lJEbubhxxuEV53dBRDSQi-PhE', SHAREPOINT_FABRICS_URL: '', MSAL_CLIENT_ID: '8a777d18-66f1-4569-8621-d0a1b14fb8fa', MSAL_TENANT_ID: '26aa0fe8-1388-43a3-8015-73bd138681b9' };
 
 // ══ SETTINGS ══
 const M365_JSON_SCHEMA = {
@@ -2948,7 +2948,7 @@ async function sendTestOrder() {
   const saved = localStorage.getItem('m365_webhook');
   const enabled = localStorage.getItem('m365_enabled');
   if (saved) M365_CONFIG.POWER_AUTOMATE_WEBHOOK = saved;
-  if (enabled === 'true') M365_CONFIG.M365_ENABLED = true;
+  if (enabled !== null) M365_CONFIG.M365_ENABLED = enabled === 'true';
 })();
 
 // ══ INIT ══
