@@ -1068,7 +1068,7 @@ function updateSelSummary() {
 // ══════════════════════════════════════════════════════════════════════════════
 // DATA (copied from original — all business logic preserved)
 // ══════════════════════════════════════════════════════════════════════════════
-const FABRICS = [
+const FALLBACK_FABRICS = [
   { id:1,  name:'Linnen Naturel',          type:'overgordijn',   color:'#C8B89A', material:'Linnen 100%',            artikelnr:'LN-001',       prijsPerMeter:175.95, leverancier:'Kendix',               kamerkant:'Meest naturel kleur', widthtype:'hoogte', stofmaat:300, gekanteld:true },
   { id:2,  name:'Velvet Midnight',          type:'overgordijn',   color:'#1E2A4A', material:'Polyester fluweel',       artikelnr:'VL-002',       prijsPerMeter:52.00,  leverancier:'Kobe',                 kamerkant:'Meest donkere kleur' },
   { id:3,  name:'Bouclé Warm Grey',         type:'overgordijn',   color:'#8E8880', material:'Bouclé mix',              artikelnr:'BC-003',       prijsPerMeter:44.00,  leverancier:'De Ploeg',             kamerkant:'Bouclé structuurzijde' },
@@ -1099,6 +1099,53 @@ const FABRICS = [
   { id:108, name:'Iris Dim-out',            type:'voering',       color:'#E0DCD6', material:'Dim-out polyester',       artikelnr:'IRI-108',      prijsPerMeter:35.00,  leverancier:'Vadain',  kamerkant:'Kleurzijde',      widthtype:'hoogte', stofmaat:300 },
   { id:109, name:'Slim Polyester',          type:'voering',       color:'#F2EEE8', material:'Polyester',               artikelnr:'SLI-109',      prijsPerMeter:45.00,  leverancier:'Kendix',  kamerkant:'Gladde zijde',    widthtype:'hoogte', stofmaat:300 },
 ];
+
+// Voeringen blijven altijd uit de hardcoded lijst (staan niet in SharePoint)
+const VOERING_FABRICS = FALLBACK_FABRICS.filter(f => f.type === 'voering');
+let FABRICS = [...FALLBACK_FABRICS];
+
+// ── SharePoint Stoffendatabase laden via Power Automate proxy ──
+const LEVERANCIER_KLEUREN = { 'Artelux':'#C8B89A', 'Loft 79':'#A0B0C0', 'Kendix Allure':'#B8A090', 'Kendix':'#90A898', 'De Ploeg':'#A89080' };
+
+function mapSharePointItem(item, index) {
+  const naam = item.Stofnaam || item.Title || '';
+  const stoftype = (item.Stoftype || '').toLowerCase();
+  const typeMap = { overgordijn:'overgordijn', vitrage:'vitrage', verduisterend:'verduisterend', velours:'velours', voering:'voering', rol:'rol' };
+  const leverancier = item.Leverancier || '';
+  return {
+    id: 10000 + index,
+    name: naam,
+    type: typeMap[stoftype] || 'overgordijn',
+    color: LEVERANCIER_KLEUREN[leverancier] || '#C8B89A',
+    material: item.Materiaal || '',
+    artikelnr: item.Artikelnummer || '',
+    prijsPerMeter: parseFloat(item.Verkoopprijs) || 0,
+    leverancier: leverancier,
+    kamerkant: item.Kleur || '',
+    widthtype: item.Kamerhoog === 'Ja' ? 'hoogte' : undefined,
+    stofmaat: parseInt(item.Stofmaat) || undefined,
+    gekanteld: item.Kantelbaar === 'Ja',
+    _sp: true
+  };
+}
+
+async function loadFabricsFromSharePoint() {
+  const url = M365_CONFIG.SHAREPOINT_FABRICS_URL;
+  if (!url) return;
+  try {
+    const resp = await fetch(url, { method: 'GET' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const items = Array.isArray(data) ? data : data.value || [];
+    if (!items.length) throw new Error('Geen stoffen ontvangen');
+    const mapped = items.filter(i => (i.Actief || 'Ja') === 'Ja').map(mapSharePointItem);
+    FABRICS = [...mapped, ...VOERING_FABRICS];
+    renderFabrics(FABRICS.filter(f => f.type !== 'voering'));
+    console.log('[Stoffendatabase] ' + mapped.length + ' stoffen geladen uit SharePoint');
+  } catch (e) {
+    console.warn('[Stoffendatabase] SharePoint laden mislukt, fallback actief:', e.message);
+  }
+}
 
 const TYPE_LABELS = { overgordijn:'Overgordijn', vitrage:'Vitrage', verduisterend:'Verduisterend', rol:'Rol- / Plissé', velours:'Velours', voering:'Voering' };
 const TYPE_BADGE  = { overgordijn:'badge-overgordijn', vitrage:'badge-vitrage', verduisterend:'badge-verduisterend', rol:'badge-rol', velours:'badge-velours', voering:'badge-voering' };
@@ -2842,7 +2889,7 @@ function downloadTemplate(){const csv='naam,type,materiaal,artikelnr,prijsPerMet
 //    Settings-paneel, webhook, testorder, JSON-schema.
 // ══════════════════════════════════════════════════════════════════════════════
 
-const M365_CONFIG = { M365_ENABLED: true, POWER_AUTOMATE_WEBHOOK: 'https://default26aa0fe8138843a3801573bd138681.b9.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/94f405d323c64af7af0914fd217e278f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=DToBnCe6_TMwcjHIg5lJEbubhxxuEV53dBRDSQi-PhE', SHAREPOINT_FABRICS_URL: '', MSAL_CLIENT_ID: '8a777d18-66f1-4569-8621-d0a1b14fb8fa', MSAL_TENANT_ID: '26aa0fe8-1388-43a3-8015-73bd138681b9' };
+const M365_CONFIG = { M365_ENABLED: true, POWER_AUTOMATE_WEBHOOK: 'https://default26aa0fe8138843a3801573bd138681.b9.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/94f405d323c64af7af0914fd217e278f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=DToBnCe6_TMwcjHIg5lJEbubhxxuEV53dBRDSQi-PhE', SHAREPOINT_FABRICS_URL: 'https://default26aa0fe8138843a3801573bd138681.b9.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/c565d45ce0f94287a73c4627119cf2ea/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8xcRxic64HY8nLJsTeQXHjtBAxo_uxE96tSLqjovZAc', MSAL_CLIENT_ID: '8a777d18-66f1-4569-8621-d0a1b14fb8fa', MSAL_TENANT_ID: '26aa0fe8-1388-43a3-8015-73bd138681b9' };
 
 // ══ SETTINGS ══
 const M365_JSON_SCHEMA = {
@@ -2956,6 +3003,7 @@ renderFabrics(FABRICS.filter(f=>f.type!=='voering'));
 renderModels();
 updateSections();
 updateSelSummary();
+loadFabricsFromSharePoint();
 
 </script>
 
