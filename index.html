@@ -1140,6 +1140,7 @@ async function loadFabricsFromSharePoint() {
     const items = Array.isArray(data) ? data : data.value || [];
     if (!items.length) throw new Error('Geen stoffen ontvangen');
     console.log('[Stoffendatabase] Voorbeeld item uit SharePoint:', JSON.stringify(items[0], null, 2));
+    alert('SharePoint velden: ' + Object.keys(items[0]).join(', '));
     const mapped = items.filter(i => (i.Actief || 'Ja') === 'Ja').map(mapSharePointItem);
     FABRICS = [...mapped, ...VOERING_FABRICS];
     filterFabrics();
