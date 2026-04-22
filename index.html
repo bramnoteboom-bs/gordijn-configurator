@@ -561,16 +561,15 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
         </div>
         <div class="search-bar-wrap">
           <svg class="search-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M12.5 12.5L16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <input type="text" class="search-input" id="s1Search" placeholder="Zoek op naam, materiaal, kleur, artikelnummer…" oninput="filterFabrics()">
+          <input type="text" class="search-input" id="s1Search" placeholder="Zoek stof op naam, leverancier of materiaal…" oninput="filterFabrics()">
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           <div class="filter-pills" style="margin-bottom:0">
-            <button class="pill active" data-filter="all" onclick="setPill(this,'all')">Alle</button>
-            <button class="pill" data-filter="overgordijn" onclick="setPill(this,'overgordijn')">Overgordijn</button>
-            <button class="pill" data-filter="vitrage" onclick="setPill(this,'vitrage')">Vitrage</button>
-            <button class="pill" data-filter="verduisterend" onclick="setPill(this,'verduisterend')">Verduisterend</button>
-            <button class="pill" data-filter="velours" onclick="setPill(this,'velours')">Velours</button>
-            <button class="pill" data-filter="rol" onclick="setPill(this,'rol')">Rol- / Plissé</button>
+            <button class="pill" data-filter="Artelux" onclick="setPill(this,'Artelux')">Artelux</button>
+            <button class="pill" data-filter="Loft 79" onclick="setPill(this,'Loft 79')">Loft 79</button>
+            <button class="pill" data-filter="Kendix Allure" onclick="setPill(this,'Kendix Allure')">Kendix Allure</button>
+            <button class="pill" data-filter="Kendix" onclick="setPill(this,'Kendix')">Kendix</button>
+            <button class="pill" data-filter="De Ploeg" onclick="setPill(this,'De Ploeg')">De Ploeg</button>
           </div>
           <div style="display:flex;gap:8px;flex-shrink:0;">
             <button class="btn-add-fabric" onclick="openImportModal()">
@@ -1142,7 +1141,7 @@ async function loadFabricsFromSharePoint() {
     if (!items.length) throw new Error('Geen stoffen ontvangen');
     const mapped = items.filter(i => (i.Actief || 'Ja') === 'Ja').map(mapSharePointItem);
     FABRICS = [...mapped, ...VOERING_FABRICS];
-    renderFabrics(FABRICS.filter(f => f.type !== 'voering'));
+    filterFabrics();
     console.log('[Stoffendatabase] ' + mapped.length + ' stoffen geladen uit SharePoint');
   } catch (e) {
     console.warn('[Stoffendatabase] SharePoint laden mislukt, fallback actief:', e.message);
@@ -1287,19 +1286,30 @@ function renderFabrics(list) {
 
 function filterFabrics() {
   const q = document.getElementById('s1Search').value.toLowerCase();
+  const hasSearch = q.length >= 2;
+  const hasFilter = activeFilter && activeFilter !== 'all';
+  if (!hasSearch && !hasFilter) {
+    const grid = document.getElementById('fabricGrid');
+    grid.innerHTML = '<div class="no-results" style="color:var(--text-dim);padding:20px 0;text-align:center">Typ een stofnaam, leverancier of materiaal om te zoeken…</div>';
+    return;
+  }
   const list = FABRICS.filter(f => {
     if (f.type === 'voering') return false;
-    const matchFilter = activeFilter === 'all' || f.type === activeFilter;
-    const matchSearch = !q || f.name.toLowerCase().includes(q) || f.material.toLowerCase().includes(q) || (f.artikelnr||'').toLowerCase().includes(q) || (f.leverancier||'').toLowerCase().includes(q);
+    const matchFilter = !hasFilter || (f.leverancier||'') === activeFilter;
+    const matchSearch = !hasSearch || f.name.toLowerCase().includes(q) || (f.material||'').toLowerCase().includes(q) || (f.artikelnr||'').toLowerCase().includes(q) || (f.leverancier||'').toLowerCase().includes(q);
     return matchFilter && matchSearch;
-  });
+  }).slice(0, 30);
   renderFabrics(list);
 }
 
 function setPill(el, filter) {
   document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  activeFilter = filter;
+  if (activeFilter === filter) {
+    activeFilter = 'all';
+  } else {
+    el.classList.add('active');
+    activeFilter = filter;
+  }
   filterFabrics();
 }
 
@@ -3001,7 +3011,7 @@ async function sendTestOrder() {
 })();
 
 // ══ INIT ══
-renderFabrics(FABRICS.filter(f=>f.type!=='voering'));
+filterFabrics();
 renderModels();
 updateSections();
 updateSelSummary();
