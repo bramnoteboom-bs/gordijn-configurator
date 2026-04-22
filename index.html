@@ -1109,23 +1109,28 @@ let FABRICS = [...FALLBACK_FABRICS];
 const LEVERANCIER_KLEUREN = { 'Artelux':'#C8B89A', 'Loft 79':'#A0B0C0', 'Kendix Allure':'#B8A090', 'Kendix':'#90A898', 'De Ploeg':'#A89080' };
 
 function mapSharePointItem(item, index) {
-  const naam = item.Stofnaam || item.Title || '';
-  const stoftype = (item.Stoftype || '').toLowerCase();
-  const typeMap = { overgordijn:'overgordijn', vitrage:'vitrage', verduisterend:'verduisterend', velours:'velours', voering:'voering', rol:'rol' };
-  const leverancier = item.Leverancier || '';
+  // SharePoint field mapping (from Excel import):
+  // Title=Stofnaam, field_1=Stoftype, field_2=Materiaal, field_3=Artikelnummer,
+  // field_4=Inkoopprijs, field_5=Kleur, field_6=Leverancier, field_7=Stofmaat,
+  // field_8=Widthtype, field_9=Verkoopprijs, field_10=Kantelbaar, field_11=Rapport,
+  // field_12=Vlamvertragend, field_13=Kamerhoog, field_14=Verzwaringskoord,
+  // field_15=Vouwgordijn, field_16=Actief, field_17=Gewicht
+  const naam = item.Title || '';
+  const leverancier = item.field_6 || '';
+  const kamerhoog = item.field_13 || '';
   return {
     id: 10000 + index,
     name: naam,
-    type: typeMap[stoftype] || 'overgordijn',
+    type: 'overgordijn',
     color: LEVERANCIER_KLEUREN[leverancier] || '#C8B89A',
-    material: item.Materiaal || '',
-    artikelnr: item.Artikelnummer || '',
-    prijsPerMeter: parseFloat(item.Verkoopprijs) || 0,
+    material: item.field_2 || '',
+    artikelnr: item.field_3 || '',
+    prijsPerMeter: parseFloat(item.field_9) || 0,
     leverancier: leverancier,
-    kamerkant: item.Kleur || '',
-    widthtype: item.Kamerhoog === 'Ja' ? 'hoogte' : undefined,
-    stofmaat: parseInt(item.Stofmaat) || undefined,
-    gekanteld: item.Kantelbaar === 'Ja',
+    kamerkant: item.field_5 || '',
+    widthtype: kamerhoog === 'Ja' ? 'hoogte' : undefined,
+    stofmaat: parseInt(item.field_7) || undefined,
+    gekanteld: (item.field_10 || '') === 'Ja',
     _sp: true
   };
 }
@@ -1139,9 +1144,7 @@ async function loadFabricsFromSharePoint() {
     const data = await resp.json();
     const items = Array.isArray(data) ? data : data.value || [];
     if (!items.length) throw new Error('Geen stoffen ontvangen');
-    console.log('[Stoffendatabase] Voorbeeld item uit SharePoint:', JSON.stringify(items[0], null, 2));
-    const i=items[0]; alert('Title='+i.Title+'\nfield_1='+i.field_1+'\nfield_2='+i.field_2+'\nfield_3='+i.field_3+'\nfield_4='+i.field_4+'\nfield_5='+i.field_5+'\nfield_6='+i.field_6+'\nfield_7='+i.field_7+'\nfield_8='+i.field_8+'\nfield_9='+i.field_9+'\nfield_10='+i.field_10+'\nfield_11='+i.field_11+'\nfield_12='+i.field_12+'\nfield_13='+i.field_13+'\nfield_14='+i.field_14+'\nfield_16='+i.field_16+'\nfield_17='+i.field_17);
-    const mapped = items.filter(i => (i.Actief || 'Ja') === 'Ja').map(mapSharePointItem);
+    const mapped = items.filter(i => (i.field_16 || 'Ja') === 'Ja').map(mapSharePointItem);
     FABRICS = [...mapped, ...VOERING_FABRICS];
     filterFabrics();
     console.log('[Stoffendatabase] ' + mapped.length + ' stoffen geladen uit SharePoint');
