@@ -1145,7 +1145,6 @@ async function loadFabricsFromSharePoint() {
     const data = await resp.json();
     const items = Array.isArray(data) ? data : data.value || [];
     if (!items.length) throw new Error('Geen stoffen ontvangen');
-    const i=items[0]; alert('Title='+i.Title+'\nfield_1='+i.field_1+'\nfield_2='+i.field_2+'\nfield_3='+i.field_3+'\nfield_4='+i.field_4+'\nfield_5='+i.field_5+'\nfield_6='+i.field_6+'\nfield_7='+i.field_7+'\nfield_8='+i.field_8+'\nfield_9='+i.field_9+'\nfield_10='+i.field_10+'\nfield_11='+i.field_11+'\nfield_12='+i.field_12+'\nfield_13='+i.field_13+'\nfield_14='+i.field_14+'\nfield_16='+i.field_16+'\nfield_17='+i.field_17+'\n\nALLE KEYS: '+Object.keys(i).filter(k=>k.startsWith('field')||k==='Title').join(', '));
     const mapped = items.filter(i => (i.field_16 || 'Ja') === 'Ja').map(mapSharePointItem);
     FABRICS = [...mapped, ...VOERING_FABRICS];
     filterFabrics();
