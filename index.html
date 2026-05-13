@@ -571,6 +571,8 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
             <button class="pill" data-filter="Kendix" onclick="setPill(this,'Kendix')">Kendix</button>
             <button class="pill" data-filter="De Ploeg" onclick="setPill(this,'De Ploeg')">De Ploeg</button>
             <button class="pill" data-filter="Fischbacher" onclick="setPill(this,'Fischbacher')">Fischbacher</button>
+            <button class="pill" data-filter="Kobe" onclick="setPill(this,'Kobe')">Kobe</button>
+            <button class="pill" data-filter="Vadain" onclick="setPill(this,'Vadain')">Vadain</button>
           </div>
           <div style="display:flex;gap:8px;flex-shrink:0;">
             <button class="btn-add-fabric" onclick="openImportModal()">
@@ -1107,7 +1109,7 @@ const VOERING_FABRICS = FALLBACK_FABRICS.filter(f => f.type === 'voering');
 let FABRICS = [...FALLBACK_FABRICS];
 
 // ── SharePoint Stoffendatabase laden via Power Automate proxy ──
-const LEVERANCIER_KLEUREN = { 'Artelux':'#C8B89A', 'Loft 79':'#A0B0C0', 'Kendix Allure':'#B8A090', 'Kendix':'#90A898', 'De Ploeg':'#A89080', 'Fischbacher':'#C4A87A' };
+const LEVERANCIER_KLEUREN = { 'Artelux':'#C8B89A', 'Loft 79':'#A0B0C0', 'Kendix Allure':'#B8A090', 'Kendix':'#90A898', 'De Ploeg':'#A89080', 'Fischbacher':'#C4A87A', 'Kobe':'#A89888', 'Vadain':'#B0A8A4' };
 
 function mapSharePointItem(item, index) {
   // SharePoint field mapping (from Excel import):
