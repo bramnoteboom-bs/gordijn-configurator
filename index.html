@@ -962,7 +962,7 @@ const APP = {
     maten: { maatsoort: '150', kamerkant: 'siena', breedte: '', hoogte: '', ongelijkLinks: null, ongelijkRechts: null, plooiPercentage: null, gekanteld: false },
     verdeling: null,
     typeSpecific: {},
-    zoomen: { bovenzoomHoogte: 10, bovenzoomType: 'plooiband', uitvalBoven: 0, afstandRoede: 0, onderzoomType: 'enkel', onderzoomHoogte: 15, gewichtjesZijzoom: true, strijken: false, retourplooi: false, hoofdje: 0 },
+    zoomen: { bovenzoomHoogte: 10, bovenzoomType: 'plooiband', uitvalBoven: 0, afstandRoede: 0, onderzoomType: 'enkel', onderzoomHoogte: 15, gewichtjesZijzoom: true, strijken: true, retourplooi: false, hoofdje: 0 },
     afwerking: { memo: '', rail: false, trekstang: false, voering: false, voeringFabric: null }
   }
 };
@@ -1131,7 +1131,7 @@ function mapSharePointItem(item, index) {
     prijsPerMeter: parseFloat(item.field_9) || 0,
     leverancier: leverancier,
     kamerkant: item.field_5 || '',
-    widthtype: kamerhoog === 'Ja' ? 'hoogte' : undefined,
+    widthtype: String(kamerhoog).trim().toLowerCase() === 'ja' ? 'hoogte' : undefined,
     stofmaat: parseInt(item.field_7) || undefined,
     gekanteld: (item.field_10 || '') === 'Ja',
     _sp: true
@@ -1179,7 +1179,7 @@ const CONFECTIE_PRIJZEN = {
 const TOESLAGEN_TARIEVEN = { band:{6:1.58,12:1.98,15:2.58}, zoom_11_15:3.56, zoom_16_25:5.02, zoom_26_35:5.96, retourplooi:4.21, triplooi:4.21, hoogte_3_4:6.49, hoogte_4_5:7.83, hoogte_5_6:9.23, hoofdje:8.90, runner:3.05, verzwAanzet:7.02, verzwLos:3.74, loodje:1.78, embrasse_recht_klein:13.84, embrasse_recht_groot:27.17, paneel:29.79, roede:12.27, span:13.49 };
 const MODEL_CONFECTIETYPE = { wave:'wave', plooi:'enkel_vlinder', ring:'zeilringen', paneel:'paneel', fronslin:'enkel_vlinder', lus:'enkel_vlinder', span:'span', roede:'roede', embrasse:'embrasse', coupage:'enkel_vlinder', vouw:'vouw' };
 const FABRIC_CONFECTIE_STOFTYPE = { overgordijn:'vitrage_overgordijn', vitrage:'vitrage_overgordijn', verduisterend:'verduisterend', velours:'velours', rol:null, voering:null };
-const HC_DEFAULTS = { bovenzoomHoogte:10, bovenzoomType:'plooiband', onderzoomType:'enkel', onderzoomHoogte:15, gewichtjesZijzoom:true, strijken:false };
+const HC_DEFAULTS = { bovenzoomHoogte:10, bovenzoomType:'plooiband', onderzoomType:'enkel', onderzoomHoogte:15, gewichtjesZijzoom:true, strijken:true };
 const MAATSOORTEN = [{val:'138',label:'BN (138 cm)'},{val:'150',label:'Standaard (150 cm)'},{val:'280',label:'Breed (280 cm)'},{val:'300',label:'Extra breed (300 cm)'}];
 const MAATSOORTEN_PLOOI = [{val:'300',label:'KH (300 cm)'},{val:'300bn',label:'BN (300 cm)'}];
 const VERDELINGEN = [
@@ -1189,7 +1189,7 @@ const VERDELINGEN = [
   { val:'ongelijk', label:'Ongelijk stel', sub:'Twee ongelijke banen', svg:`<svg viewBox="0 0 90 80" fill="none"><rect x="2" y="0" width="86" height="4" rx="2" fill="#b88d70" opacity="0.8"/><rect x="2" y="4" width="28" height="74" rx="1" fill="#b88d70" opacity="0.25" stroke="#b88d70" stroke-width="1" stroke-opacity="0.5"/><rect x="36" y="4" width="52" height="74" rx="1" fill="#b88d70" opacity="0.25" stroke="#b88d70" stroke-width="1" stroke-opacity="0.5"/></svg>`, warning:true },
 ];
 const MODEL_CONFIGS = {
-  wave:{ desc:'Wavegordijn specificaties.', factor:2.0, typeFields:[{id:'runnerafstand',label:'Runnerafstand',hint:'6 cm = meer runners, meer stof',type:'tile-choice',options:[{val:'6',label:'6 cm'},{val:'8',label:'8 cm',default:true}]},{id:'wavelengte',label:'Wavelengte',hint:'Bepaalt de plooifactor (wavelengte ÷ runnerafstand)',type:'stepper',min:12,max:20,step:1,default:16,unit:'cm'},{id:'haakkleur',label:'Kleur wavehaakje',type:'color-choice',options:[{val:'wit',label:'Wit',color:'#F5F5F5'},{val:'zwart',label:'Zwart',color:'#1A1A1A'}]},{id:'runners',label:'Runners meeleveren',type:'radio',options:[{val:'nee',label:'Nee'},{val:'ja',label:'Ja',note:'Wij adviseren bij een Elegant rail de bijbehorende wave runners mee te leveren.'}],default:'ja'},{id:'runnerkleur',label:'Runner kleur',type:'color-choice',options:[{val:'wit',label:'Wit',color:'#F5F5F5'},{val:'zwart',label:'Zwart',color:'#1A1A1A'}]}]},
+  wave:{ desc:'Wavegordijn specificaties.', factor:2.0, typeFields:[{id:'runnerafstand',label:'Runnerafstand',hint:'6 cm = meer runners, meer stof',type:'tile-choice',options:[{val:'6',label:'6 cm'},{val:'8',label:'8 cm',default:true}]},{id:'wavelengte',label:'Wavelengte',hint:'Bepaalt de plooifactor (wavelengte ÷ runnerafstand)',type:'stepper',min:12,max:20,step:1,default:16,unit:'cm'},{id:'haakkleur',label:'Kleur wavehaakje',type:'color-choice',options:[{val:'wit',label:'Wit',color:'#F5F5F5'},{val:'zwart',label:'Zwart',color:'#1A1A1A'}]},{id:'runners',label:'Runners meeleveren',type:'radio',options:[{val:'nee',label:'Nee'},{val:'ja',label:'Ja',note:'Wij adviseren bij een Elegant rail de bijbehorende wave runners mee te leveren.'}],default:'nee'},{id:'runnerkleur',label:'Runner kleur',type:'color-choice',options:[{val:'wit',label:'Wit',color:'#F5F5F5'},{val:'zwart',label:'Zwart',color:'#1A1A1A'}]}]},
   plooi:{ desc:'Plooigordijn specificaties.', factor:2.5, typeFields:[{id:'plooitype',label:'Type plooi',type:'tile-choice',options:[{val:'enkel',label:'Enkele plooi',sub:'Klassiek',default:true},{val:'vlinder',label:'Vlinder plooi',sub:'Sierlijk'},{val:'tri',label:'Tri plooi',sub:'Voller'},{val:'geen',label:'Geen plooi',sub:'Plat'}]},{id:'haaktype',label:'Haaktype',type:'btn-choice',options:[{val:'positie1',label:'Positie 1 (rail)',default:true},{val:'positie4',label:'Positie 4 (roede)'}]}]},
   ring:{ desc:'Ringgordijn specificaties.', factor:2.0, typeFields:[{id:'ringmaat',label:'Ringmaat',hint:'Binnendiameter',type:'btn-choice',options:[{val:'25',label:'Ø 25 mm'},{val:'40',label:'Ø 40 mm',default:true},{val:'60',label:'Ø 60 mm'}]},{id:'ringkleur',label:'Kleur ringen',type:'color-choice',options:[{val:'wit',label:'Wit',color:'#F5F5F5'},{val:'nikkel',label:'Nikkel',color:'#A0A8B0'},{val:'zwart',label:'Zwart',color:'#1A1A1A'},{val:'goud',label:'Goud',color:'#C8A96E'},{val:'brons',label:'Brons',color:'#7A5C38'}]}]},
   paneel:{ desc:'Paneelgordijn specificaties.', factor:1.0, typeFields:[{id:'aantalPanelen',label:'Aantal panelen',type:'stepper',min:2,max:8,step:1,default:3,unit:'st.'},{id:'paneelBreedte',label:'Breedte per paneel',type:'number',unit:'cm',placeholder:'bijv. 60'}]},
@@ -1198,7 +1198,7 @@ const MODEL_CONFIGS = {
   span:{ desc:'Spangordijn specificaties.', factor:1.2, typeFields:[{id:'spanning',label:'Spanning',type:'btn-choice',options:[{val:'boven-onder',label:'Boven + onder',default:true},{val:'alleen-boven',label:'Alleen boven'}]}]},
   roede:{ desc:'Roedegordijn specificaties.', factor:2.2, typeFields:[{id:'tunnelHoogte',label:'Tunnelzoomhoogte',type:'stepper',min:4,max:12,step:1,default:6,unit:'cm'}]},
   embrasse:{ desc:'Embrasse-gordijn specificaties.', factor:2.5, typeFields:[{id:'embracseKant',label:'Opgehouden aan',type:'btn-choice',options:[{val:'links',label:'Links',default:true},{val:'rechts',label:'Rechts'},{val:'beide',label:'Beide zijden'}]},{id:'embracseType',label:'Type embrasse',type:'btn-choice',options:[{val:'raffband',label:'Raffband',default:true},{val:'haak',label:'Embrasse-haak'},{val:'magneet',label:'Magneet'}]}]},
-  coupage:{ desc:'Coupage specificaties.', factor:3.0, typeFields:[{id:'plooitype',label:'Type plooi',type:'btn-choice',options:[{val:'drie',label:'Drie-voudig',default:true},{val:'goblet',label:'Goblet'},{val:'box',label:'Box plooi'}]},{id:'extraVal',label:'Extra vallengte (sleep)',type:'stepper',min:0,max:30,step:5,default:0,unit:'cm'}]},
+  coupage:{ desc:'Coupage specificaties.', factor:3.0, typeFields:[{id:'plooitype',label:'Type plooi',type:'btn-choice',options:[{val:'drie',label:'Drie-voudig',default:true},{val:'goblet',label:'Goblet'},{val:'box',label:'Box plooi'}]}]},
   vouw:{ desc:'Vouwgordijn specificaties. Confectie per m².', factor:2.4, typeFields:[
     {id:'vouwType',label:'Confectietype vouwgordijn',type:'tile-choice',options:[
       {val:'type4',label:'Type 4',sub:'Tunnels naar achteren',default:true},
@@ -1233,7 +1233,7 @@ const MODELS = [
   { id:'coupage', naam:'Coupage', factor:3.0, factorLabel:'× 3,0', rolbreedte:'Breed', ophang:'Plooiband / rail', desc:'Luxe, maximaal stofvolume.', svg:`<svg viewBox="0 0 100 110" fill="none"><rect x="5" y="8" width="90" height="4" rx="2" fill="#b88d70" opacity="0.9"/><path d="M8 12 C10 12 10 30 12 30 C14 30 14 12 16 12 C18 12 18 30 20 30" stroke="#b88d70" stroke-width="1.2" fill="none" opacity="0.6"/></svg>` },
   { id:'vouw', naam:'Vouwgordijn', factor:2.4, factorLabel:'× 2,4', rolbreedte:'Op maat', ophang:'Ketting / motor', desc:'Plat gordijn dat in vouwen omhoog gaat.', svg:`<svg viewBox="0 0 100 110" fill="none"><rect x="10" y="6" width="80" height="5" rx="2" fill="#b88d70" opacity="0.9"/><rect x="10" y="11" width="80" height="18" fill="#b88d70" opacity="0.2" stroke="#b88d70" stroke-width="1" stroke-opacity="0.4"/><rect x="10" y="29" width="80" height="14" fill="#b88d70" opacity="0.15" stroke="#b88d70" stroke-width="1" stroke-opacity="0.3"/><rect x="10" y="43" width="80" height="10" fill="#b88d70" opacity="0.1" stroke="#b88d70" stroke-width="1" stroke-opacity="0.25"/><line x1="10" y1="53" x2="90" y2="53" stroke="#b88d70" stroke-width="1.5" opacity="0.5"/><path d="M10 53 L10 106 L90 106 L90 53" fill="#b88d70" opacity="0.08"/><line x1="50" y1="6" x2="50" y2="3" stroke="#cba98e" stroke-width="1.5" opacity="0.7"/><circle cx="50" cy="2" r="2" fill="#cba98e" opacity="0.7"/></svg>` },
 ];
-const PLOOI_DEFAULTS = { enkel: 170, vlinder: 200, tri: 250, geen: 100 };
+const PLOOI_DEFAULTS = { enkel: 170, vlinder: 220, tri: 250, geen: 100 };
 
 // ── VOUWGORDIJN PRIJZEN (inkoop excl. BTW, × 2.4 = verkoop incl. BTW) ──
 
@@ -1349,9 +1349,8 @@ function renderModels() {
   document.getElementById('modelGrid').innerHTML = MODELS.map(m => {
     let factorDisplay = m.factorLabel;
     if (m.id === 'wave') {
-      const ra = parseFloat(APP.stap3.typeSpecific?.runnerafstand) || 8;
-      const wl = parseFloat(APP.stap3.typeSpecific?.wavelengte) || 16;
-      factorDisplay = `× ${(wl/ra).toFixed(1)}`;
+      const pct = APP.stap3.maten.plooiPercentage || 240;
+      factorDisplay = `× ${(pct/100).toFixed(1)}`;
     }
     return `<div class="model-card ${APP.stap2.model?.id === m.id ? 'selected' : ''}" onclick="selectModel('${m.id}')">
       <div class="model-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -1371,9 +1370,8 @@ function selectModel(id) {
   document.getElementById('detailDesc').textContent = m.desc;
   let factorDisplay = m.factorLabel;
   if (m.id === 'wave') {
-    const ra = parseFloat(APP.stap3.typeSpecific?.runnerafstand) || 8;
-    const wl = parseFloat(APP.stap3.typeSpecific?.wavelengte) || 16;
-    factorDisplay = `× ${(wl/ra).toFixed(2)} (${wl}/${ra} cm)`;
+    const pct = APP.stap3.maten.plooiPercentage || 240;
+    factorDisplay = `× ${(pct/100).toFixed(2)}`;
   }
   document.getElementById('detailFactor').textContent = factorDisplay;
   document.getElementById('detailRol').textContent = m.rolbreedte;
@@ -1503,7 +1501,7 @@ function buildMatenAcc() {
 
   const waveInfoRow = isWave ? `<div class="field-group"><div class="field-label">Plooifactor <span class="field-hint" data-tip="< 200 cm = factor 2,4 · ≥ 200 cm = factor 2,2 · handmatig aanpasbaar">i</span></div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <div class="stepper"><button class="stepper-btn" onclick="adjustWaveFactor(-10)">−</button><div style="position:relative"><input type="number" class="stepper-val" id="waveFactorInput" value="${APP.stap3.maten.plooiPercentage||240}" min="150" max="350" step="10" style="width:70px" oninput="APP.stap3.maten.plooiPercentage=parseInt(this.value)||240;APP.stap3.maten._waveFactorManual=true;s3recalc()"><span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-dim);pointer-events:none">%</span></div><button class="stepper-btn" onclick="adjustWaveFactor(10)">+</button></div>
+      <div class="stepper"><button class="stepper-btn" onclick="adjustWaveFactor(-10)">−</button><div style="position:relative"><input type="number" class="stepper-val" id="waveFactorInput" value="${APP.stap3.maten.plooiPercentage||240}" min="150" max="350" step="10" style="width:70px" oninput="APP.stap3.maten.plooiPercentage=parseInt(this.value)||240;APP.stap3.maten._waveFactorManual=true;syncWaveFactorDisplay();s3recalc()"><span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--text-dim);pointer-events:none">%</span></div><button class="stepper-btn" onclick="adjustWaveFactor(10)">+</button></div>
       <div style="display:flex;gap:4px">${[220,240].map(p=>`<button onclick="setWaveFactor(${p})" style="padding:5px 10px;border-radius:6px;border:1.5px solid var(--border);background:${(APP.stap3.maten.plooiPercentage||240)===p?'var(--brown)':'var(--surface)'};color:${(APP.stap3.maten.plooiPercentage||240)===p?'white':'var(--text-mid)'};font-size:11px;font-family:Inter,sans-serif;cursor:pointer;transition:all 0.2s">${(p/100).toFixed(1)}</button>`).join('')}</div>
       <span style="font-size:11px;color:var(--text-dim)">Default: ${waveBreedte>=200?'≥ 200 cm → 2,2':'< 200 cm → 2,4'}</span>
     </div></div>` : '';
@@ -1531,7 +1529,9 @@ function buildMatenAcc() {
       <div class="field"><div class="field-sublabel">Hoogte / val</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="${hVal}" placeholder="bijv. 260" oninput="APP.stap3.maten.hoogte=this.value;s3recalc();updateSections()"><span class="input-unit">cm</span></div></div>
     </div>`;
 
-  return makeAcc(1,'Maten','Afmetingen en plooipercentage',`<div class="field-group">${widthtypeBanner}${kantelenToggle}${matenRij}</div>${plooiRow}`,true);
+  _plooiRowHtml = plooiRow;
+  const isPlooiModel = model?.id === 'plooi';
+  return makeAcc(1,'Maten','Afmetingen en plooipercentage',`<div class="field-group">${widthtypeBanner}${kantelenToggle}${matenRij}</div>${isPlooiModel?'':plooiRow}`,true);
 }
 
 function buildVerdelingAcc() {
@@ -1545,7 +1545,10 @@ function buildVerdelingAcc() {
 
 function buildTypeAcc(model, config) {
   let html = '';
-  for (const f of config.typeFields) html += `<div class="field-group">${renderField(f)}</div>`;
+  for (const f of config.typeFields) {
+    html += `<div class="field-group">${renderField(f)}</div>`;
+    if (model.id === 'plooi' && f.id === 'plooitype') html += _plooiRowHtml;
+  }
   // Vouwgordijn: voeg motorisering-opties toe (conditioneel zichtbaar)
   if (model.id === 'vouw') {
     html += `<div id="vouwMotorPanel" style="display:none;margin-top:4px;background:var(--greige-light);border:1px solid var(--border);border-radius:10px;padding:16px 18px;animation:fadeUp 0.2s ease">
@@ -1571,6 +1574,7 @@ function buildTypeAcc(model, config) {
 
 function buildZoomenAcc() {
   const isPlooi = APP.stap2?.model?.id === 'plooi';
+  const isWaveZ = APP.stap2?.model?.id === 'wave';
   const svgCheck = `<svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   const onderzoomSVGs = {
     enkel:`<svg viewBox="0 0 90 70" fill="none"><rect x="5" y="2" width="80" height="56" fill="#b88d70" opacity="0.15"/><rect x="5" y="58" width="80" height="10" rx="1" fill="#b88d70" opacity="0.35"/></svg>`,
@@ -1582,7 +1586,7 @@ function buildZoomenAcc() {
   `<div class="field-group"><div class="field-label">Bovenzoom / ophangband</div><div class="btn-tile-grid" id="bovenzoomTypeGrid">${['plooiband','waveband','tunnelzoom','haakjesband','klittenband'].map(t=>`<button class="btn-tile${t==='plooiband'?' selected':''}" data-field="bovenzoomType" data-val="${t}" onclick="selectBovenzoom('${t}',this)">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}</div></div>`;
 
   return makeAcc(4,'Zoomen & afwerking','Boven- en onderzoom, voering',`${bovenzoomHTML}
-    <div class="form-row cols-3" style="margin-bottom:20px">${isPlooi?'':`<div class="field"><div class="field-sublabel">Hoogte bovenzoom</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="10" min="2" max="20" oninput="APP.stap3.zoomen.bovenzoomHoogte=parseFloat(this.value);markDev('bovenzoomHoogte',this.value,HC_DEFAULTS.bovenzoomHoogte);s3recalc()"><span class="input-unit">cm</span></div></div>`}<div class="field"><div class="field-sublabel">Uitval boven rail</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="0" min="0" max="20" oninput="APP.stap3.zoomen.uitvalBoven=parseFloat(this.value);s3recalc()"><span class="input-unit">cm</span></div></div><div class="field"><div class="field-sublabel">Afstand roede–stof</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="0" min="0" max="15" oninput="APP.stap3.zoomen.afstandRoede=parseFloat(this.value)"><span class="input-unit">cm</span></div></div></div>
+    <div class="form-row cols-2" style="margin-bottom:20px">${(isPlooi||isWaveZ)?'':`<div class="field"><div class="field-sublabel">Hoogte bovenzoom</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="10" min="2" max="20" oninput="APP.stap3.zoomen.bovenzoomHoogte=parseFloat(this.value);markDev('bovenzoomHoogte',this.value,HC_DEFAULTS.bovenzoomHoogte);s3recalc()"><span class="input-unit">cm</span></div></div>`}<div class="field"><div class="field-sublabel">Afstand roede–stof</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="0" min="0" max="15" oninput="APP.stap3.zoomen.afstandRoede=parseFloat(this.value)"><span class="input-unit">cm</span></div></div></div>
     <div class="section-divider"></div>
     <div class="field-group" style="margin-top:16px"><div class="field-label">Type onderzoom</div><div class="tile-grid" id="onderzoomGrid" style="grid-template-columns:repeat(5,1fr)">
       <div class="choice-tile selected" data-val="enkel" onclick="selectOnderzoom('enkel',this)"><div class="tile-check">${svgCheck}</div><div class="tile-visual">${onderzoomSVGs.enkel}</div><div class="tile-label">Enkel</div></div>
@@ -1594,16 +1598,16 @@ function buildZoomenAcc() {
     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:6px">
       <div class="field" style="max-width:160px"><div class="field-sublabel">Zoomhoogte <span style="font-size:9px;color:var(--gold)">(HC: 15cm)</span></div><div class="stepper"><button class="stepper-btn" onclick="stepZ(-1)">−</button><input class="stepper-val" id="onderzoomH" type="number" value="15" min="4" max="30" oninput="APP.stap3.zoomen.onderzoomHoogte=parseFloat(this.value);markDev('onderzoomHoogte',this.value,HC_DEFAULTS.onderzoomHoogte);s3recalc()"><button class="stepper-btn" onclick="stepZ(1)">+</button></div></div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:14px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-mid)"><input type="checkbox" checked id="chkGew" onchange="APP.stap3.zoomen.gewichtjesZijzoom=this.checked;markDev('gewichtjesZijzoom',this.checked,HC_DEFAULTS.gewichtjesZijzoom)" style="accent-color:var(--gold);width:15px;height:15px"> Gewichtjes zijzoom <span style="font-size:9px;color:var(--gold)">HC</span></label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-mid)"><input type="checkbox" id="chkStr" onchange="APP.stap3.zoomen.strijken=this.checked;markDev('strijken',this.checked,HC_DEFAULTS.strijken)" style="accent-color:var(--gold);width:15px;height:15px"> Strijken</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-mid)"><input type="checkbox" checked id="chkGew" onchange="APP.stap3.zoomen.gewichtjesZijzoom=this.checked;markDev('gewichtjesZijzoom',this.checked,HC_DEFAULTS.gewichtjesZijzoom);s3recalc()" style="accent-color:var(--gold);width:15px;height:15px"> Gewichtjes zijzoom <span style="font-size:9px;color:var(--gold)">HC</span></label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-mid)"><input type="checkbox" checked id="chkStr" onchange="APP.stap3.zoomen.strijken=this.checked;markDev('strijken',this.checked,HC_DEFAULTS.strijken)" style="accent-color:var(--gold);width:15px;height:15px"> Strijken</label>
       </div>
     </div>
     <div class="section-divider"></div>
-    <div class="toggle-row" style="margin-top:2px"><div><div class="toggle-label">Voering toevoegen</div><div class="toggle-sub">Voeringstof koppelen aan dit gordijn</div></div><label class="toggle"><input type="checkbox" id="voeringToggle" onchange="APP.stap3.afwerking.voering=this.checked;document.getElementById('voeringPanel').style.display=this.checked?'block':'none';if(this.checked){voeringFilter='voering';renderVoeringFabrics();}s3recalc()"><span class="slider"></span></label></div>
+    <div class="toggle-row" style="margin-top:2px"><div><div class="toggle-label">Voering toevoegen</div><div class="toggle-sub">Voeringstof koppelen aan dit gordijn</div></div><label class="toggle"><input type="checkbox" id="voeringToggle" onchange="APP.stap3.afwerking.voering=this.checked;document.getElementById('voeringPanel').style.display=this.checked?'block':'none';if(this.checked){voeringFilter='all';renderVoeringFabrics();}s3recalc()"><span class="slider"></span></label></div>
     <div id="voeringPanel" style="display:none;margin-top:14px;background:var(--greige-light);border:1px solid var(--border);border-radius:10px;padding:16px 18px;animation:fadeUp 0.2s ease">
       <div style="font-size:11px;font-weight:500;color:var(--text-mid);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.8px">Voeringstof selecteren</div>
       <div class="search-bar-wrap" style="margin-bottom:10px"><svg class="search-icon" width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M12.5 12.5L16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" class="search-input" id="voeringSearch" placeholder="Zoek voeringstof…" oninput="filterVoeringFabrics()"></div>
-      <div class="filter-pills" style="margin-bottom:12px"><button class="pill active" onclick="setVoeringPill(this,'voering')">Voering</button><button class="pill" onclick="setVoeringPill(this,'all')">Alle</button><button class="pill" onclick="setVoeringPill(this,'overgordijn')">Overgordijn</button><button class="pill" onclick="setVoeringPill(this,'verduisterend')">Verduisterend</button></div>
+      <div class="filter-pills" style="margin-bottom:12px"><button class="pill" onclick="setVoeringPill(this,'voering')">Voering</button><button class="pill active" onclick="setVoeringPill(this,'all')">Alle</button><button class="pill" onclick="setVoeringPill(this,'overgordijn')">Overgordijn</button><button class="pill" onclick="setVoeringPill(this,'verduisterend')">Verduisterend</button></div>
       <div class="fabric-grid" id="voeringFabricGrid" style="margin-bottom:12px"></div>
       <div class="selection-banner" id="voeringBanner" style="margin-top:0;margin-bottom:12px"><div class="sel-swatch" id="voeringBannerSwatch"></div><div class="sel-text"><div class="sel-name" id="voeringBannerName">—</div><div class="sel-meta" id="voeringBannerMeta">—</div></div></div>
       <div id="voeringMaatPanel" style="display:none;border-top:1px solid var(--border);padding-top:12px;margin-top:2px"><div id="voeringDbInfo"></div></div>
@@ -1675,23 +1679,21 @@ function selectBovenzoom(val, el) { APP.stap3.zoomen.bovenzoomType=val; document
 function selectOnderzoom(val, el) { APP.stap3.zoomen.onderzoomType=val; document.querySelectorAll('#onderzoomGrid .choice-tile').forEach(t=>t.classList.remove('selected','deviated')); el.classList.add('selected'); markDev('onderzoomType',val,HC_DEFAULTS.onderzoomType); if(val!==HC_DEFAULTS.onderzoomType)el.classList.add('deviated'); s3recalc(); }
 function markDev(key, val, def) { String(val)!==String(def)?deviations.add(key):deviations.delete(key); const badge=document.getElementById('hcBadge'); if(badge){badge.style.display=deviations.size>0?'block':'none';document.getElementById('hcCount').textContent=deviations.size;} }
 function updateWaveInfo() {
-  const ra = parseFloat(APP.stap3.typeSpecific?.runnerafstand) || 8;
-  const wl = parseFloat(APP.stap3.typeSpecific?.wavelengte) || 16;
-  const f = wl / ra;
-  APP.stap3.maten.plooiPercentage = Math.round(f * 100);
-  // Update infobanner in maten accordion
-  const banner = document.getElementById('waveInfoBanner');
-  if (banner) banner.innerHTML = `Plooifactor: <strong style="color:var(--brown)">\u00D7 ${f.toFixed(2)}</strong> <span style="color:var(--text-dim);font-weight:400">(${wl} cm wavelengte \u00F7 ${ra} cm runnerafstand)</span>`;
-  // Update model detail
+  // Wavelengte/runnerafstand bepalen alleen nog het aantal runners, niet de plooifactor.
+  // Deze functie synct het model-detailpaneel en de modelkaart met de écht gekozen plooifactor
+  // (APP.stap3.maten.plooiPercentage, in te stellen via de 2,2/2,4-knoppen in stap 3).
+  syncWaveFactorDisplay();
+}
+function syncWaveFactorDisplay() {
+  const pct = APP.stap3.maten.plooiPercentage || 240;
   const det = document.getElementById('detailFactor');
-  if (det) det.textContent = `\u00D7 ${f.toFixed(2)} (${wl}/${ra} cm)`;
-  // Update model card
+  if (det && APP.stap2?.model?.id === 'wave') det.textContent = `\u00D7 ${(pct/100).toFixed(2)}`;
   renderModels();
 }
 function adjustPlooi(delta) { const input=document.getElementById('plooiInput'); if(!input)return; const nv=Math.max(100,Math.min(400,(parseInt(input.value)||200)+delta)); input.value=nv; APP.stap3.maten.plooiPercentage=nv; s3recalc(); }
 function setPlooi(pct) { const input=document.getElementById('plooiInput'); if(input)input.value=pct; APP.stap3.maten.plooiPercentage=pct; s3recalc(); }
-function adjustWaveFactor(delta) { const input=document.getElementById('waveFactorInput'); if(!input)return; const nv=Math.max(150,Math.min(350,(parseInt(input.value)||240)+delta)); input.value=nv; APP.stap3.maten.plooiPercentage=nv; APP.stap3.maten._waveFactorManual=true; s3recalc(); }
-function setWaveFactor(pct) { const input=document.getElementById('waveFactorInput'); if(input)input.value=pct; APP.stap3.maten.plooiPercentage=pct; APP.stap3.maten._waveFactorManual=true; s3recalc(); }
+function adjustWaveFactor(delta) { const input=document.getElementById('waveFactorInput'); if(!input)return; const nv=Math.max(150,Math.min(350,(parseInt(input.value)||240)+delta)); input.value=nv; APP.stap3.maten.plooiPercentage=nv; APP.stap3.maten._waveFactorManual=true; syncWaveFactorDisplay(); s3recalc(); }
+function setWaveFactor(pct) { const input=document.getElementById('waveFactorInput'); if(input)input.value=pct; APP.stap3.maten.plooiPercentage=pct; APP.stap3.maten._waveFactorManual=true; syncWaveFactorDisplay(); s3recalc(); }
 
 // ══ VOERING ══
 
@@ -1700,7 +1702,8 @@ function setWaveFactor(pct) { const input=document.getElementById('waveFactorInp
 //    Voeringstof-selectie, rendering en interactie.
 // ══════════════════════════════════════════════════════════════════════════════
 
-let voeringFilter = 'voering';
+let voeringFilter = 'all';
+let _plooiRowHtml = ''; // Gedeeld tussen buildMatenAcc en buildTypeAcc (Plooigordijn toont plooipercentage ná type plooi)
 function renderVoeringFabrics() { const grid=document.getElementById('voeringFabricGrid'); if(!grid)return; const q=(document.getElementById('voeringSearch')?.value||'').toLowerCase(); const list=FABRICS.filter(f=>{const mf=voeringFilter==='all'||f.type===voeringFilter;const ms=!q||f.name.toLowerCase().includes(q)||(f.material||'').toLowerCase().includes(q)||(f.artikelnr||'').toLowerCase().includes(q);return mf&&ms;}); const sel=APP.stap3.afwerking.voeringFabric; if(!list.length){grid.innerHTML='<div class="no-results">Geen stoffen gevonden.</div>';return;} grid.innerHTML=list.map(f=>`<div class="fabric-card ${sel?.id===f.id?'selected':''}" onclick="selectVoeringFabric(${f.id})"><div class="fabric-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="fabric-swatch" style="background:${createSwatch(f.color,f.type)}"></div><div class="fabric-info"><div class="fabric-badge ${TYPE_BADGE[f.type]}">${TYPE_LABELS[f.type]}</div><div class="fabric-name">${f.name}</div><div class="fabric-material">${f.material} · ${f.artikelnr}</div></div></div>`).join(''); }
 function filterVoeringFabrics() { renderVoeringFabrics(); }
 function setVoeringPill(el, filter) { el.closest('.filter-pills').querySelectorAll('.pill').forEach(p=>p.classList.remove('active')); el.classList.add('active'); voeringFilter=filter; renderVoeringFabrics(); }
@@ -1736,7 +1739,7 @@ function s3calc() {
   const bovenzoomH=s3.zoomen.bovenzoomHoogte||10; const uitvalBoven=s3.zoomen.uitvalBoven||0;
   const extraVal=parseFloat(s3.typeSpecific?.extraVal)||0;
   const isStel=verdeling==='gelijk'||verdeling==='ongelijk';
-  const zijkantenExtra=isStel?20:10;
+  const zijkantenExtra=isStel?30:15;
   const isWaveModel=model?.id==='wave';
   const wavelengte=parseFloat(s3.typeSpecific?.wavelengte)||16;
   const runnerafstand=parseFloat(s3.typeSpecific?.runnerafstand)||8;
@@ -1763,7 +1766,7 @@ function s3calc() {
     if(!safeCalc){banenLinks=0;banenRechts=0;}
     else if(verdeling==='ongelijk'&&s3.maten.ongelijkLinks&&s3.maten.ongelijkRechts){banenLinks=Math.ceil((s3.maten.ongelijkLinks*factor+10)/rolbreedte);banenRechts=Math.ceil((s3.maten.ongelijkRechts*factor+10)/rolbreedte);}
     else if(verdeling==='links'||verdeling==='rechts'){const b=Math.ceil((breedte*factor+zijkantenExtra)/rolbreedte);banenLinks=verdeling==='links'?b:0;banenRechts=verdeling==='rechts'?b:0;}
-    else{const half=Math.ceil(((breedte/2)*factor+(zijkantenExtra/2))/rolbreedte);banenLinks=half;banenRechts=half;}
+    else{const totaalNodig=Math.ceil((breedte*factor+zijkantenExtra)/rolbreedte);banenLinks=Math.ceil(totaalNodig/2);banenRechts=totaalNodig-banenLinks;}
     totaalBanen=banenLinks+banenRechts;percLinks=banenLinks*rolbreedte;percRechts=banenRechts*rolbreedte;totaalM=(totaalBanen*knipmaat)/100;
   }
   const knipmaatstuk=(isHoogtestof&&isStel)?totaalM/2:null;
@@ -1963,7 +1966,7 @@ function s3recalc() {
     const isStelW = c.verdeling === 'gelijk' || c.verdeling === 'ongelijk';
     html += `<div class="calc-row"><span class="calc-key">Runnerafstand</span><span class="calc-val">${ra} cm</span></div>`;
     html += `<div class="calc-row"><span class="calc-key">Wavelengte</span><span class="calc-val">${wl} cm</span></div>`;
-    html += `<div class="calc-row"><span class="calc-key">Plooifactor (${wl} ÷ ${ra})</span><span class="calc-val">× ${c.factor.toFixed(2)}</span></div>`;
+    html += `<div class="calc-row"><span class="calc-key">Plooifactor</span><span class="calc-val">× ${c.factor.toFixed(2)}</span></div>`;
     if (isStelW) {
       html += `<div class="calc-row"><span class="calc-key">Runners links</span><span class="calc-val">${c.runnersLinks}</span></div>`;
       html += `<div class="calc-row"><span class="calc-key">Runners rechts</span><span class="calc-val">${c.runnersRechts}</span></div>`;
@@ -2123,7 +2126,7 @@ function buildStap4() {
   document.getElementById('o4Art').textContent=f.artikelnr;
   document.getElementById('o4Prijs').textContent=f.prijsPerMeter?`€ ${f.prijsPerMeter.toFixed(2)} / m`:'—';
   document.getElementById('o4Model').textContent=m.naam;
-  document.getElementById('o4Factor').textContent=m.factorLabel;
+  document.getElementById('o4Factor').textContent=`\u00D7 ${c.factor.toFixed(2)}`;
   const stofRows=[];
   if(c.isHoogtestof){stofRows.push(['Stoflengte',`${(c.breedte*c.factor+c.zijkantenExtra).toFixed(0)} cm`]);stofRows.push(['Stofbreedte (= valhoogte)',`${c.stofbreedte} cm`]);if(isStel&&c.knipmaatstuk!==null)stofRows.push(['Knipmaat per stuk',`${c.knipmaatstuk.toFixed(2)} m`]);stofRows.push(['Banen','—']);}
   else{if(isStel){stofRows.push(['Links perc.',`${c.percLinks} cm`]);stofRows.push(['Rechts perc.',`${c.percRechts} cm`]);}else{stofRows.push(['Percentage',`${c.percLinks+c.percRechts} cm`]);}stofRows.push(['Knipmaat',`${c.knipmaat} cm`]);stofRows.push(['Banen',`${c.totaalBanen}`]);stofRows.push(['Totaal',`${(c.totaalBanen*c.knipmaat/100).toFixed(2)} m`]);}
