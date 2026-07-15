@@ -1195,9 +1195,9 @@ const MODEL_CONFIGS = {
   paneel:{ desc:'Paneelgordijn specificaties.', factor:1.0, typeFields:[{id:'aantalPanelen',label:'Aantal panelen',type:'stepper',min:2,max:8,step:1,default:3,unit:'st.'},{id:'paneelBreedte',label:'Breedte per paneel',type:'number',unit:'cm',placeholder:'bijv. 60'}]},
   fronslin:{ desc:'Fronslintgordijn specificaties.', factor:2.0, typeFields:[{id:'fronstype',label:'Type fronsband',type:'btn-choice',options:[{val:'standaard',label:'Standaard (2 cm)',default:true},{val:'breed',label:'Breed (4 cm)'},{val:'pencil',label:'Pencil pleat'}]},{id:'koordkant',label:'Koordkant',type:'btn-choice',options:[{val:'links',label:'Links',default:true},{val:'rechts',label:'Rechts'}]}]},
   lus:{ desc:'Lusgordijn specificaties.', factor:2.0, typeFields:[{id:'lusAfstand',label:'Lusafstand (h.o.h.)',type:'stepper',min:8,max:20,step:1,default:12,unit:'cm'},{id:'lusHoogte',label:'Lushoogte',type:'stepper',min:4,max:12,step:1,default:7,unit:'cm'}]},
-  span:{ desc:'Spangordijn specificaties.', factor:1.2, typeFields:[{id:'spanning',label:'Type tunnel',type:'btn-choice',options:[{val:'boven-onder',label:'Tunnel boven en onder',default:true},{val:'alleen-boven',label:'Alleen tunnel boven'}]},{id:'tunnelHoogte',label:'Hoogte tunnel',type:'stepper',min:2,max:15,step:0.5,default:6,unit:'cm'},{id:'hoofdjeTunnel',label:'Hoofdje boven tunnel',type:'stepper',min:0,max:10,step:0.5,default:0,unit:'cm'}]},
+  span:{ desc:'Spangordijn specificaties.', factor:1.2, typeFields:[{id:'spanning',label:'Type tunnel',type:'btn-choice',options:[{val:'boven-onder',label:'Tunnel boven en onder',default:true},{val:'alleen-boven',label:'Alleen tunnel boven'}]}]},
   roede:{ desc:'Roedegordijn specificaties.', factor:2.2, typeFields:[{id:'tunnelHoogte',label:'Tunnelzoomhoogte',type:'stepper',min:4,max:12,step:1,default:6,unit:'cm'}]},
-  embrasse:{ desc:'Embrasse-gordijn specificaties.', factor:2.5, typeFields:[{id:'embracseKant',label:'Opgehouden aan',type:'btn-choice',options:[{val:'links',label:'Links',default:true},{val:'rechts',label:'Rechts'},{val:'beide',label:'Beide zijden'}]},{id:'embracseType',label:'Type embrasse',type:'btn-choice',options:[{val:'raffband',label:'Raffband',default:true},{val:'haak',label:'Embrasse-haak'},{val:'magneet',label:'Magneet'}]}]},
+  embrasse:{ desc:'Embrasse specificaties.', factor:2.5, typeFields:[{id:'embrasseModel',label:'Model',type:'btn-choice',options:[{val:'recht',label:'Recht',default:true},{val:'banaan',label:'Banaan'}]},{id:'sluiting',label:'Sluiting',type:'btn-choice',options:[{val:'ring',label:'Ring',default:true},{val:'klittenband',label:'Klittenband'}]},{id:'typeRing',label:'Type ring',type:'btn-choice',options:[{val:'kunststof13',label:'Transparant kunststof 13mm',default:true},{val:'kunststof18',label:'Transparant kunststof 18mm'},{val:'chroom13',label:'Metaal chroom 13mm'},{val:'chroom18',label:'Metaal chroom 18mm'},{val:'messing13',label:'Metaal messing 13mm'},{val:'messing18',label:'Metaal messing 18mm'}]}]},
   coupage:{ desc:'Coupage specificaties.', factor:3.0, typeFields:[{id:'plooitype',label:'Type plooi',type:'btn-choice',options:[{val:'drie',label:'Drie-voudig',default:true},{val:'goblet',label:'Goblet'},{val:'box',label:'Box plooi'}]}]},
   vouw:{ desc:'Vouwgordijn specificaties. Confectie per m².', factor:2.4, typeFields:[
     {id:'vouwType',label:'Confectietype vouwgordijn',type:'tile-choice',options:[
@@ -1362,7 +1362,7 @@ function selectModel(id) {
   // Bovenzoom/ophangband: standaard 'waveband' bij Wave, 'tunnelzoom' bij Span, anders 'plooiband'
   APP.stap3.zoomen.bovenzoomType = (m.id === 'wave') ? 'waveband' : (m.id === 'span') ? 'tunnelzoom' : 'plooiband';
   // Span: "Type onderzoom" niet van toepassing — de tunnelkeuze (boven / boven+onder) in stap 3 bepaalt dit
-  if (m.id === 'span') { APP.stap3.zoomen.onderzoomType = 'geen'; APP.stap3.zoomen.bovenzoomHoogte = 0; }
+  if (m.id === 'span') { APP.stap3.zoomen.onderzoomType = 'geen'; APP.stap3.zoomen.bovenzoomHoogte = 6; }
   const det = document.getElementById('modelDetail');
   det.classList.add('visible');
   document.getElementById('detailName').textContent = m.naam;
@@ -1571,6 +1571,11 @@ function buildVerdelingAcc() {
 function buildTypeAcc(model, config) {
   let html = '';
   for (const f of config.typeFields) {
+    if (f.id === 'typeRing') {
+      const curSluiting = APP.stap3.typeSpecific?.sluiting || 'ring';
+      html += `<div class="field-group" id="typeRingPanel" style="display:${curSluiting==='ring'?'block':'none'}">${renderField(f)}</div>`;
+      continue;
+    }
     html += `<div class="field-group">${renderField(f)}</div>`;
     if (model.id === 'plooi' && f.id === 'plooitype') html += _plooiRowHtml;
   }
@@ -1608,13 +1613,22 @@ function buildZoomenAcc() {
     verzwaring:`<svg viewBox="0 0 90 70" fill="none"><rect x="5" y="2" width="80" height="58" fill="#b88d70" opacity="0.15"/><rect x="5" y="60" width="80" height="8" fill="#b88d70" opacity="0.35"/><circle cx="20" cy="64" r="3" fill="#cba98e" opacity="0.8"/><circle cx="50" cy="64" r="3" fill="#cba98e" opacity="0.8"/></svg>`,
     geen:`<svg viewBox="0 0 90 70" fill="none"><rect x="5" y="2" width="80" height="66" fill="#b88d70" opacity="0.15"/><line x1="5" y1="68" x2="85" y2="68" stroke="#b88d70" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 3"/></svg>`
   };
+  const spanningZ = APP.stap3.typeSpecific?.spanning || 'boven-onder';
   const bovenzoomHTML = isPlooi ? `<div class="field-group"><div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end"><div><div class="field-sublabel" style="margin-bottom:5px">Vliesband</div><select class="custom-select" id="vliesdropdown" style="width:130px" onchange="APP.stap3.zoomen.bovenzoomType='vliesband';APP.stap3.zoomen.bovenzoomHoogte=parseFloat(this.value);markDev('bovenzoomHoogte',this.value,HC_DEFAULTS.bovenzoomHoogte);s3recalc()"><option value="6">6 cm</option><option value="8">8 cm</option><option value="10" selected>10 cm</option><option value="12">12 cm</option><option value="15">15 cm</option></select></div><div><div class="field-sublabel" style="margin-bottom:5px">Hoofdje</div><select class="custom-select" id="hoofdjedropdown" style="width:130px" onchange="APP.stap3.zoomen.hoofdje=parseFloat(this.value);s3recalc()"><option value="0" selected>0 cm</option><option value="0.5">0,5 cm</option><option value="1">1 cm</option><option value="1.5">1,5 cm</option><option value="2">2 cm</option><option value="2.5">2,5 cm</option><option value="3">3 cm</option><option value="3.5">3,5 cm</option><option value="4">4 cm</option></select></div></div><div style="margin-top:14px"><label style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;background:var(--surface)" id="retourplooiLabel"><input type="checkbox" id="chkRetour" style="accent-color:var(--brown);width:15px;height:15px" onchange="APP.stap3.zoomen.retourplooi=this.checked;s3recalc()"><div><div style="font-size:12px;font-weight:500;color:var(--text)">Retourplooi</div><div style="font-size:10px;color:var(--text-dim);margin-top:1px">+8% toeslag</div></div></label></div></div>` :
+  isSpanZ ? `<div class="field-group"><div class="field-label">Bovenzoom / ophangband</div><div style="font-size:12px;color:var(--text-mid);padding:8px 12px;background:var(--greige-light);border-radius:8px;display:inline-block">Tunnelzoom (vast bij Spangordijn)</div></div>` :
   `<div class="field-group"><div class="field-label">Bovenzoom / ophangband</div><div class="btn-tile-grid" id="bovenzoomTypeGrid">${['plooiband','waveband','tunnelzoom','haakjesband','klittenband'].map(t=>`<button class="btn-tile${t===(APP.stap3.zoomen.bovenzoomType||'plooiband')?' selected':''}" data-field="bovenzoomType" data-val="${t}" onclick="selectBovenzoom('${t}',this)">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}</div></div>`;
 
+  const spanTunnelRow = isSpanZ ? `<div class="form-row cols-3" style="margin-bottom:20px">
+    <div class="field"><div class="field-sublabel">Tunnelhoogte</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="${APP.stap3.zoomen.bovenzoomHoogte||6}" min="2" max="15" step="0.5" oninput="APP.stap3.zoomen.bovenzoomHoogte=parseFloat(this.value);s3recalc()"><span class="input-unit">cm</span></div></div>
+    <div class="field"><div class="field-sublabel">Hoogte hoofdje</div><select class="custom-select" id="hoofdjedropdownSpan" onchange="APP.stap3.zoomen.hoofdje=parseFloat(this.value);s3recalc()"><option value="0" ${!APP.stap3.zoomen.hoofdje?'selected':''}>0 cm</option><option value="0.5" ${APP.stap3.zoomen.hoofdje==0.5?'selected':''}>0,5 cm</option><option value="1" ${APP.stap3.zoomen.hoofdje==1?'selected':''}>1 cm</option><option value="1.5" ${APP.stap3.zoomen.hoofdje==1.5?'selected':''}>1,5 cm</option><option value="2" ${APP.stap3.zoomen.hoofdje==2?'selected':''}>2 cm</option><option value="2.5" ${APP.stap3.zoomen.hoofdje==2.5?'selected':''}>2,5 cm</option><option value="3" ${APP.stap3.zoomen.hoofdje==3?'selected':''}>3 cm</option><option value="3.5" ${APP.stap3.zoomen.hoofdje==3.5?'selected':''}>3,5 cm</option><option value="4" ${APP.stap3.zoomen.hoofdje==4?'selected':''}>4 cm</option></select></div>
+    <div class="field"><div class="field-sublabel">${spanningZ==='boven-onder'?'Confectiehoogte tussen beide tunnels in':'Confectiehoogte tot aan tunnel'}</div><div class="custom-input" style="background:var(--surface2);cursor:default;font-size:13px">${APP.stap3.maten.hoogte?APP.stap3.maten.hoogte+' cm':'—'}</div></div>
+  </div>` : '';
+
   return makeAcc(4,'Zoomen & afwerking','Boven- en onderzoom, voering',`${bovenzoomHTML}
-    <div class="form-row cols-2" style="margin-bottom:20px">${(isPlooi||isWaveZ||isSpanZ)?'':`<div class="field"><div class="field-sublabel">Hoogte bovenzoom</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="10" min="2" max="20" oninput="APP.stap3.zoomen.bovenzoomHoogte=parseFloat(this.value);markDev('bovenzoomHoogte',this.value,HC_DEFAULTS.bovenzoomHoogte);s3recalc()"><span class="input-unit">cm</span></div></div>`}<div class="field"><div class="field-sublabel">Afstand roede–stof</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="0" min="0" max="15" oninput="APP.stap3.zoomen.afstandRoede=parseFloat(this.value)"><span class="input-unit">cm</span></div></div></div>
+    ${spanTunnelRow}
+    <div class="form-row cols-2" style="margin-bottom:20px">${(isPlooi||isWaveZ||isSpanZ)?'':`<div class="field"><div class="field-sublabel">Hoogte bovenzoom</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="10" min="2" max="20" oninput="APP.stap3.zoomen.bovenzoomHoogte=parseFloat(this.value);markDev('bovenzoomHoogte',this.value,HC_DEFAULTS.bovenzoomHoogte);s3recalc()"><span class="input-unit">cm</span></div></div>`}${isSpanZ?'':`<div class="field"><div class="field-sublabel">Afstand roede–stof</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="0" min="0" max="15" oninput="APP.stap3.zoomen.afstandRoede=parseFloat(this.value)"><span class="input-unit">cm</span></div></div>`}</div>
     <div class="section-divider"></div>
-    ${isSpanZ ? `<div class="field-group" style="margin-top:16px"><div class="field-label">Onderzoom</div><div style="font-size:12px;color:var(--text-mid);padding:10px 12px;background:var(--greige-light);border-radius:8px">${(APP.stap3.typeSpecific?.spanning||'boven-onder')==='boven-onder' ? 'Tunnelzoom boven én onder — bepaald door de tunnelkeuze in "Spangordijn instellingen".' : 'Alleen tunnelzoom boven, geen onderzoom — bepaald door de tunnelkeuze in "Spangordijn instellingen".'}</div></div>` : `
+    ${isSpanZ ? `<div class="field-group" style="margin-top:16px"><div class="field-label">Onderzoom</div><div style="font-size:12px;color:var(--text-mid);padding:10px 12px;background:var(--greige-light);border-radius:8px">${spanningZ==='boven-onder' ? 'Tunnelzoom boven én onder — bepaald door de tunnelkeuze in "Spangordijn instellingen".' : 'Alleen tunnelzoom boven, geen onderzoom — bepaald door de tunnelkeuze in "Spangordijn instellingen".'}</div></div>` : `
     <div class="field-group" style="margin-top:16px"><div class="field-label">Type onderzoom</div><div class="tile-grid" id="onderzoomGrid" style="grid-template-columns:repeat(5,1fr)">
       <div class="choice-tile selected" data-val="enkel" onclick="selectOnderzoom('enkel',this)"><div class="tile-check">${svgCheck}</div><div class="tile-visual">${onderzoomSVGs.enkel}</div><div class="tile-label">Enkel</div></div>
       <div class="choice-tile" data-val="dubbel" onclick="selectOnderzoom('dubbel',this)"><div class="tile-check">${svgCheck}</div><div class="tile-visual">${onderzoomSVGs.dubbel}</div><div class="tile-label">Dubbel</div></div>
@@ -1692,7 +1706,7 @@ function renderField(f) {
 //    Event-handlers voor selecties, klikken en wijzigingen.
 // ══════════════════════════════════════════════════════════════════════════════
 
-function selectBtnField(fid, val, el) { APP.stap3.typeSpecific[fid]=val; el.closest('.btn-tile-grid,.tile-grid').querySelectorAll(`[data-field="${fid}"]`).forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); if(fid==='plooitype'&&PLOOI_DEFAULTS[val]!==undefined)setPlooi(PLOOI_DEFAULTS[val]); if(fid==='vouwBediening'){const mp=document.getElementById('vouwMotorPanel');if(mp)mp.style.display=val==='gemotoriseerd'?'block':'none';} if(fid==='spanning'){buildStap3();}
+function selectBtnField(fid, val, el) { APP.stap3.typeSpecific[fid]=val; el.closest('.btn-tile-grid,.tile-grid').querySelectorAll(`[data-field="${fid}"]`).forEach(b=>b.classList.remove('selected')); el.classList.add('selected'); if(fid==='plooitype'&&PLOOI_DEFAULTS[val]!==undefined)setPlooi(PLOOI_DEFAULTS[val]); if(fid==='vouwBediening'){const mp=document.getElementById('vouwMotorPanel');if(mp)mp.style.display=val==='gemotoriseerd'?'block':'none';} if(fid==='sluiting'){const trp=document.getElementById('typeRingPanel');if(trp)trp.style.display=val==='ring'?'block':'none';} if(fid==='spanning'){buildStap3();}
   // Vouwgordijn: gevoerde types zetten voering automatisch aan
   if(fid==='vouwType'){const gevoerdTypes=['type6','type7','type8','type9','type11','type12'];const isGevoerd=gevoerdTypes.includes(val);APP.stap3.typeSpecific.vouwVoering=isGevoerd?'ja':'nee';const vBtn=document.querySelector('[data-field="vouwVoering"]');if(vBtn){const grid=vBtn.closest('.btn-tile-grid');if(grid){grid.querySelectorAll('[data-field="vouwVoering"]').forEach(b=>{b.classList.remove('selected');if(b.dataset.val===(isGevoerd?'ja':'nee'))b.classList.add('selected');});}}}
   // Wave: bij wijziging runnerafstand of wavelengte → update infobanner, niet hele rebuild
@@ -1796,8 +1810,8 @@ function s3calc() {
   else{
     const isSpanCalc = model?.id === 'span';
     if (isSpanCalc) {
-      const tunnelHoogte = parseFloat(s3.typeSpecific?.tunnelHoogte) || 6;
-      const hoofdjeTunnel = parseFloat(s3.typeSpecific?.hoofdjeTunnel) || 0;
+      const tunnelHoogte = parseFloat(s3.zoomen?.bovenzoomHoogte) || 6;
+      const hoofdjeTunnel = parseFloat(s3.zoomen?.hoofdje) || 0;
       const spanningCalc = s3.typeSpecific?.spanning || 'boven-onder';
       const tunnelAllowance = spanningCalc === 'boven-onder' ? (tunnelHoogte*2) : tunnelHoogte;
       knipmaat = hoogte + hoofdjeTunnel + tunnelAllowance + 5; // +5 cm knipmarge
@@ -1846,8 +1860,8 @@ function validate() {
     const isSpanValidate = model?.id === 'span';
     let benodigdeHoogte, onderzoomH, bovenzoomH, uitvalBoven, extraVal;
     if (isSpanValidate) {
-      const tunnelHoogteV = parseFloat(APP.stap3.typeSpecific?.tunnelHoogte) || 6;
-      const hoofdjeTunnelV = parseFloat(APP.stap3.typeSpecific?.hoofdjeTunnel) || 0;
+      const tunnelHoogteV = parseFloat(APP.stap3.zoomen?.bovenzoomHoogte) || 6;
+      const hoofdjeTunnelV = parseFloat(APP.stap3.zoomen?.hoofdje) || 0;
       const spanningV = APP.stap3.typeSpecific?.spanning || 'boven-onder';
       const tunnelAllowanceV = spanningV === 'boven-onder' ? (tunnelHoogteV*2) : tunnelHoogteV;
       onderzoomH = 0; bovenzoomH = tunnelAllowanceV; uitvalBoven = 0; extraVal = hoofdjeTunnelV;
