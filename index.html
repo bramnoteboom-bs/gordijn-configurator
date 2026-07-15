@@ -996,9 +996,12 @@ function updateSections() {
   const hasStof = !!APP.stap1.fabric;
   const hasModel = !!APP.stap2.model;
   const isVouw = APP.stap2.model?.id === 'vouw';
+  const isEmbrasseCheck = APP.stap2.model?.id === 'embrasse';
   const hasSpecs = isVouw
     ? (APP.stap3.maten.breedte && APP.stap3.maten.hoogte)
-    : (APP.stap3.maten.breedte && APP.stap3.maten.hoogte && APP.stap3.verdeling);
+    : isEmbrasseCheck
+      ? !!APP.stap3.maten.breedte
+      : (APP.stap3.maten.breedte && APP.stap3.maten.hoogte && APP.stap3.verdeling);
 
   // Validatie (moet vóór bevestiging-sectie staan)
   const v = hasSpecs ? validate() : { hasBlocker: false };
@@ -1393,6 +1396,7 @@ function buildStap3() {
   if (!model) return;
   const config = MODEL_CONFIGS[model.id] || MODEL_CONFIGS.wave;
   const isVouw = model.id === 'vouw';
+  const isEmbrasse = model.id === 'embrasse';
 
   // Bewaar accordion open/dicht status vóór rebuild
   const accStates = {};
@@ -1409,12 +1413,18 @@ function buildStap3() {
   document.getElementById('s3Desc').textContent = config.desc;
   const container = document.getElementById('s3Accordions');
   container.innerHTML = '';
-  container.appendChild(isVouw ? buildVouwMatenAcc() : buildMatenAcc());
-  if (!isVouw) container.appendChild(buildVerdelingAcc());
-  container.appendChild(buildTypeAcc(model, config));
-  if (!isVouw) container.appendChild(buildZoomenAcc());
-  container.appendChild(buildExtrasAcc());
-  if (!isVouw) renderVoeringFabrics();
+  if (isEmbrasse) {
+    // Embrasse: alleen type-specifieke opties en extras/memo nodig — maten/verdeling/zoomen vervallen
+    container.appendChild(buildTypeAcc(model, config, 1));
+    container.appendChild(buildExtrasAcc(2));
+  } else {
+    container.appendChild(isVouw ? buildVouwMatenAcc() : buildMatenAcc());
+    if (!isVouw) container.appendChild(buildVerdelingAcc());
+    container.appendChild(buildTypeAcc(model, config));
+    if (!isVouw) container.appendChild(buildZoomenAcc());
+    container.appendChild(buildExtrasAcc());
+    if (!isVouw) renderVoeringFabrics();
+  }
   if (isVouw && !APP.stap3.verdeling) APP.stap3.verdeling = 'links';
 
   // Herstel accordion open/dicht status
@@ -1568,8 +1578,16 @@ function buildVerdelingAcc() {
   return makeAcc(2,'Gordijnverdeling','Hoe opent het gordijn',`<div class="field-group"><div class="field-label">Gordijnverdeling</div><div class="tile-grid cols-4" id="verdelingGrid">${tiles}</div><div class="warning-box" id="verdelingWarn" style="display:${curVerd==='ongelijk'?'flex':'none'}"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2L14.9 14H1.1L8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="8" y1="7" x2="8" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="12" r="0.5" fill="currentColor" stroke="currentColor"/></svg><span class="warning-text">Elektrische rail niet beschikbaar bij ongelijk stel.</span></div><div id="ongelijkPanel" style="display:${curVerd==='ongelijk'?'block':'none'};margin-top:16px;background:var(--greige-light);border:1px solid var(--border);border-radius:8px;padding:16px 18px;"><div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:12px">Breedte per paneel</div><div class="form-row cols-2"><div class="field"><div class="field-sublabel">Stuk links</div><div class="input-wrap"><input type="number" class="custom-input has-unit" id="ongelijkLinks" value="${oL}" placeholder="bijv. 80" oninput="APP.stap3.maten.ongelijkLinks=parseFloat(this.value);s3recalc()"><span class="input-unit">cm</span></div></div><div class="field"><div class="field-sublabel">Stuk rechts</div><div class="input-wrap"><input type="number" class="custom-input has-unit" id="ongelijkRechts" value="${oR}" placeholder="bijv. 160" oninput="APP.stap3.maten.ongelijkRechts=parseFloat(this.value);s3recalc()"><span class="input-unit">cm</span></div></div></div><div id="ongelijkTotaal" style="margin-top:10px;font-size:11px;color:var(--text-dim)"></div></div></div>`);
 }
 
-function buildTypeAcc(model, config) {
+function buildTypeAcc(model, config, accNum=3) {
   let html = '';
+  if (model.id === 'embrasse') {
+    const bVal = APP.stap3.maten.breedte || '';
+    const aantalVal = APP.stap3.maten.aantal || 1;
+    html += `<div class="form-row cols-2" style="margin-bottom:16px">
+      <div class="field"><div class="field-sublabel">Lengte/breedte</div><div class="input-wrap"><input type="number" class="custom-input has-unit" value="${bVal}" placeholder="bijv. 80" oninput="APP.stap3.maten.breedte=this.value;s3recalc()"><span class="input-unit">cm</span></div></div>
+      <div class="field"><div class="field-sublabel">Aantal</div><div class="input-wrap"><input type="number" class="custom-input" value="${aantalVal}" min="1" step="1" oninput="APP.stap3.maten.aantal=parseInt(this.value)||1;s3recalc()"></div></div>
+    </div>`;
+  }
   for (const f of config.typeFields) {
     if (f.id === 'typeRing') {
       const curSluiting = APP.stap3.typeSpecific?.sluiting || 'ring';
@@ -1599,7 +1617,7 @@ function buildTypeAcc(model, config) {
       </div>
     </div>`;
   }
-  return makeAcc(3,`${model.naam} instellingen`,'Type-specifieke opties',html);
+  return makeAcc(accNum,`${model.naam} instellingen`,'Type-specifieke opties',html);
 }
 
 function buildZoomenAcc() {
@@ -1655,8 +1673,8 @@ function buildZoomenAcc() {
     </div>`);
 }
 
-function buildExtrasAcc() {
-  return makeAcc(5,'Extras & memo','Rail, trekstang en notities',`
+function buildExtrasAcc(accNum=5) {
+  return makeAcc(accNum,'Extras & memo','Rail, trekstang en notities',`
     <div class="toggle-row"><div><div class="toggle-label">Gordijnrail meeleveren</div></div><label class="toggle"><input type="checkbox" onchange="APP.stap3.afwerking.rail=this.checked"><span class="slider"></span></label></div>
     <div class="toggle-row"><div><div class="toggle-label">Trekstang meeleveren</div></div><label class="toggle"><input type="checkbox" onchange="APP.stap3.afwerking.trekstang=this.checked"><span class="slider"></span></label></div>
     <div class="toggle-row" style="border:none"><div><div class="toggle-label">Memo toevoegen</div></div><label class="toggle"><input type="checkbox" onchange="document.getElementById('memoBox').style.display=this.checked?'block':'none'"><span class="slider"></span></label></div>
@@ -1813,7 +1831,7 @@ function s3calc() {
       const tunnelHoogte = parseFloat(s3.zoomen?.bovenzoomHoogte) || 6;
       const hoofdjeTunnel = parseFloat(s3.zoomen?.hoofdje) || 0;
       const spanningCalc = s3.typeSpecific?.spanning || 'boven-onder';
-      const tunnelAllowance = spanningCalc === 'boven-onder' ? (tunnelHoogte*2) : tunnelHoogte;
+      const tunnelAllowance = spanningCalc === 'boven-onder' ? (tunnelHoogte*4) : (tunnelHoogte*2);
       knipmaat = hoogte + hoofdjeTunnel + tunnelAllowance + 5; // +5 cm knipmarge
     } else {
       const hoofdjeH = parseFloat(s3.zoomen.hoofdje) || 0;
@@ -1835,7 +1853,7 @@ function s3calc() {
   return {knipmaat,totaalBanen,banenLinks,banenRechts,percLinks,percRechts,totaalM,totaalMIncl,knipmaatstuk,retourplooi,retourplooiToeslag,voeringM,voeringBanen,voeringKnipmaat,voeringFabric,vIsHoogtestof,vStofbreedte,runnersLinks,runnersRechts,totalRunners,factor,plooiPct,breedte,breedteTotaal,zijkantenExtra,hoogte,rolbreedte,verdeling,isHoogtestof,stofbreedte,wavelengte,runnerafstand,aanzetExtraM};
 }
 
-function berekenConfectie(c) { const model=APP.stap2?.model;const fabric=APP.stap1?.fabric;const s3=APP.stap3;if(!model||!fabric||!c)return null;const gevoerd=!!(s3.afwerking.voering&&s3.afwerking.voeringFabric);const isHoogtestof=c.isHoogtestof;const modelId=model.id;const confModelType=MODEL_CONFECTIETYPE[modelId];const confStofType=FABRIC_CONFECTIE_STOFTYPE[fabric.type];if(modelId==='embrasse'){const b=parseFloat(s3.maten.breedte)||0;const i=b<=100?TOESLAGEN_TARIEVEN.embrasse_recht_klein:TOESLAGEN_TARIEVEN.embrasse_recht_groot;return{omschrijving:`Embrasse recht ${b<=100?'≤100 cm':'≤200 cm'}`,tarief:i,eenheid:'per gordijn',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR};}if(modelId==='paneel'){const i=TOESLAGEN_TARIEVEN.paneel;const n=c.totaalBanen||1;return{omschrijving:'Paneelgordijn',tarief:i,eenheid:'per paneel',aantal:n,inkoop:i*n,verkoop:i*n*VERKOOP_FACTOR};}if(modelId==='span'){const i=TOESLAGEN_TARIEVEN.span;const m=c.totaalMIncl;return{omschrijving:'Vitrage Span',tarief:i,eenheid:'per meter',aantal:m,inkoop:i*m,verkoop:i*m*VERKOOP_FACTOR};}if(modelId==='roede'){const i=TOESLAGEN_TARIEVEN.roede;const m=c.totaalMIncl;return{omschrijving:'Vitrage op roede',tarief:i,eenheid:'per meter',aantal:m,inkoop:i*m,verkoop:i*m*VERKOOP_FACTOR};}if(modelId==='vouw'){const b=parseFloat(s3.maten.breedte)||0;const h=parseFloat(s3.maten.hoogte)||0;const m2=(b*h)/10000;const basisInkoop=Math.max(VOUW_PRIJZEN.confectie_per_m2*m2,VOUW_PRIJZEN.confectie_minimum);const gevoerdV=s3.typeSpecific?.vouwVoering==='ja';const sleuven=s3.typeSpecific?.vouwSleuven==='ja';let confInkoop=basisInkoop;if(gevoerdV)confInkoop*=1.5;if(sleuven)confInkoop*=1.125;const vouwAfstand=parseInt(s3.typeSpecific?.vouwAfstand)||25;const afwijkendeVouw=vouwAfstand<24||vouwAfstand>28;if(afwijkendeVouw)confInkoop*=1.15;const gLabel=gevoerdV?' (gevoerd)':'';const aLabel=afwijkendeVouw?' (afw. vouwafstand +15%)':'';return{omschrijving:`Vouwgordijn confectie${gLabel}${aLabel}`,tarief:VOUW_PRIJZEN.confectie_per_m2,eenheid:`per m² (${m2.toFixed(2)} m²)`,aantal:m2,inkoop:confInkoop,verkoop:confInkoop*VERKOOP_FACTOR,isVouw:true};}if(!confStofType||!confModelType)return null;const effSt=modelId==='ring'?'gordijnstof':confStofType;const effMt=modelId==='ring'?'zeilringen':confModelType;const tabel=isHoogtestof?CONFECTIE_PRIJZEN.kamerhoog:CONFECTIE_PRIJZEN.banen;const cp=tabel?.[effSt]?.[effMt];if(!cp)return null;const tarief=gevoerd?cp.gevoerd:cp.basis;const gL=gevoerd?' (gevoerd)':'';if(isHoogtestof){const m=c.totaalMIncl;return{omschrijving:`Confectie kamerhoog${gL}`,tarief,eenheid:'per meter',aantal:m,inkoop:tarief*m,verkoop:tarief*m*VERKOOP_FACTOR};}else{const b=c.totaalBanen;return{omschrijving:`Confectie${gL}`,tarief,eenheid:'per baan',aantal:b,inkoop:tarief*b,verkoop:tarief*b*VERKOOP_FACTOR};} }
+function berekenConfectie(c) { const model=APP.stap2?.model;const fabric=APP.stap1?.fabric;const s3=APP.stap3;if(!model||!fabric||!c)return null;const gevoerd=!!(s3.afwerking.voering&&s3.afwerking.voeringFabric);const isHoogtestof=c.isHoogtestof;const modelId=model.id;const confModelType=MODEL_CONFECTIETYPE[modelId];const confStofType=FABRIC_CONFECTIE_STOFTYPE[fabric.type];if(modelId==='embrasse'){const b=parseFloat(s3.maten.breedte)||0;const aantalEmbrasse=parseInt(s3.maten.aantal)||1;const i=b<=100?TOESLAGEN_TARIEVEN.embrasse_recht_klein:TOESLAGEN_TARIEVEN.embrasse_recht_groot;return{omschrijving:`Embrasse recht ${b<=100?'≤100 cm':'≤200 cm'}`,tarief:i,eenheid:'per stuk',aantal:aantalEmbrasse,inkoop:i*aantalEmbrasse,verkoop:i*aantalEmbrasse*VERKOOP_FACTOR};}if(modelId==='paneel'){const i=TOESLAGEN_TARIEVEN.paneel;const n=c.totaalBanen||1;return{omschrijving:'Paneelgordijn',tarief:i,eenheid:'per paneel',aantal:n,inkoop:i*n,verkoop:i*n*VERKOOP_FACTOR};}if(modelId==='span'){const i=TOESLAGEN_TARIEVEN.span;const m=c.totaalMIncl;return{omschrijving:'Vitrage Span',tarief:i,eenheid:'per meter',aantal:m,inkoop:i*m,verkoop:i*m*VERKOOP_FACTOR};}if(modelId==='roede'){const i=TOESLAGEN_TARIEVEN.roede;const m=c.totaalMIncl;return{omschrijving:'Vitrage op roede',tarief:i,eenheid:'per meter',aantal:m,inkoop:i*m,verkoop:i*m*VERKOOP_FACTOR};}if(modelId==='vouw'){const b=parseFloat(s3.maten.breedte)||0;const h=parseFloat(s3.maten.hoogte)||0;const m2=(b*h)/10000;const basisInkoop=Math.max(VOUW_PRIJZEN.confectie_per_m2*m2,VOUW_PRIJZEN.confectie_minimum);const gevoerdV=s3.typeSpecific?.vouwVoering==='ja';const sleuven=s3.typeSpecific?.vouwSleuven==='ja';let confInkoop=basisInkoop;if(gevoerdV)confInkoop*=1.5;if(sleuven)confInkoop*=1.125;const vouwAfstand=parseInt(s3.typeSpecific?.vouwAfstand)||25;const afwijkendeVouw=vouwAfstand<24||vouwAfstand>28;if(afwijkendeVouw)confInkoop*=1.15;const gLabel=gevoerdV?' (gevoerd)':'';const aLabel=afwijkendeVouw?' (afw. vouwafstand +15%)':'';return{omschrijving:`Vouwgordijn confectie${gLabel}${aLabel}`,tarief:VOUW_PRIJZEN.confectie_per_m2,eenheid:`per m² (${m2.toFixed(2)} m²)`,aantal:m2,inkoop:confInkoop,verkoop:confInkoop*VERKOOP_FACTOR,isVouw:true};}if(!confStofType||!confModelType)return null;const effSt=modelId==='ring'?'gordijnstof':confStofType;const effMt=modelId==='ring'?'zeilringen':confModelType;const tabel=isHoogtestof?CONFECTIE_PRIJZEN.kamerhoog:CONFECTIE_PRIJZEN.banen;const cp=tabel?.[effSt]?.[effMt];if(!cp)return null;const tarief=gevoerd?cp.gevoerd:cp.basis;const gL=gevoerd?' (gevoerd)':'';if(isHoogtestof){const m=c.totaalMIncl;return{omschrijving:`Confectie kamerhoog${gL}`,tarief,eenheid:'per meter',aantal:m,inkoop:tarief*m,verkoop:tarief*m*VERKOOP_FACTOR};}else{const b=c.totaalBanen;return{omschrijving:`Confectie${gL}`,tarief,eenheid:'per baan',aantal:b,inkoop:tarief*b,verkoop:tarief*b*VERKOOP_FACTOR};} }
 
 function berekenToeslagen(c) { const model=APP.stap2?.model;const s3=APP.stap3;if(!model||!c)return[];const toeslagen=[];const isPlooi=model.id==='plooi';const isWave=model.id==='wave';const isHoogtestof=c.isHoogtestof;const banen=c.totaalBanen||0;const knipmaat=c.knipmaat||0;function toeslag(l,t,a,e){const i=t*a;toeslagen.push({label:l,tarief:t,eenheid:e,aantal:a,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(isPlooi&&!isHoogtestof){const bh=s3.zoomen.bovenzoomHoogte||10;const bt=TOESLAGEN_TARIEVEN.band[bh];if(bt)toeslag(`Band ${bh} cm`,bt,banen,'per baan');}if(!isHoogtestof&&s3.zoomen.onderzoomType!=='geen'){const oh=s3.zoomen.onderzoomHoogte||15;if(oh>=11&&oh<=15)toeslag('Onderzoom 11–15 cm',TOESLAGEN_TARIEVEN.zoom_11_15,banen,'per baan');else if(oh>=16&&oh<=25)toeslag('Onderzoom 16–25 cm',TOESLAGEN_TARIEVEN.zoom_16_25,banen,'per baan');else if(oh>=26&&oh<=35)toeslag('Onderzoom 26–35 cm',TOESLAGEN_TARIEVEN.zoom_26_35,banen,'per baan');}if(isPlooi&&s3.zoomen.retourplooi&&!isHoogtestof)toeslag('Retour/platte plooi',TOESLAGEN_TARIEVEN.retourplooi,banen,'per baan');if(isPlooi&&s3.typeSpecific?.plooitype==='tri'&&!isHoogtestof)toeslag('Triplooi',TOESLAGEN_TARIEVEN.triplooi,banen,'per baan');if(!isHoogtestof&&knipmaat>=300){if(knipmaat<400)toeslag('Hoogte 3–4 m',TOESLAGEN_TARIEVEN.hoogte_3_4,banen,'per baan');else if(knipmaat<500)toeslag('Hoogte 4–5 m',TOESLAGEN_TARIEVEN.hoogte_4_5,banen,'per baan');else if(knipmaat<600)toeslag('Hoogte 5–6 m',TOESLAGEN_TARIEVEN.hoogte_5_6,banen,'per baan');}if(isPlooi&&(s3.zoomen.hoofdje||0)>0)toeslag('Hoofdje',TOESLAGEN_TARIEVEN.hoofdje,1,'per gordijn');if(c.isHoogtestof&&(s3.maten.aanzet==='boven'||s3.maten.aanzet==='onder')&&c.aanzetExtraM>0){const isBoven=s3.maten.aanzet==='boven';toeslag(isBoven?'Valse bovenkant / Hoogte':'Valse onderkant zoom',isBoven?TOESLAGEN_TARIEVEN.aanzetBoven:TOESLAGEN_TARIEVEN.aanzetOnder,c.aanzetExtraM,'per meter');}if(isWave&&s3.typeSpecific?.runners==='ja'){const confectiebreedteM=(c.breedte||0)/100;if(confectiebreedteM>0)toeslag('Wave runners',TOESLAGEN_TARIEVEN.runner,confectiebreedteM,'per meter');}if(!isHoogtestof){if(s3.zoomen.onderzoomType==='verzwaring_aanzetten')toeslag('Verzw.koord aanzet',TOESLAGEN_TARIEVEN.verzwAanzet,banen,'per baan');else if(s3.zoomen.onderzoomType==='verzwaring_fabriek')toeslag('Verzw.koord los',TOESLAGEN_TARIEVEN.verzwLos,banen,'per baan');}if(s3.zoomen.gewichtjesZijzoom&&!isHoogtestof&&banen>0){const isStel=c.verdeling==='gelijk'||c.verdeling==='ongelijk';toeslag('Loodjes zijzoom',TOESLAGEN_TARIEVEN.loodje,isStel?4:2,'per stuk');}if(model.id==='vouw'){const vT=s3.typeSpecific;if(vT?.vouwBediening==='metalen_ketting'){const i=VOUW_PRIJZEN.metalen_ketting;toeslagen.push({label:'Metalen ketting',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(vT?.vouwVolant==='ja'){const i=VOUW_PRIJZEN.volant_bovenzijde;toeslagen.push({label:'Volant bovenzijde',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(vT?.vouwZijgeleiding==='ja'){const i=VOUW_PRIJZEN.zijgeleiding_set;toeslagen.push({label:'Zijgeleiding (set)',tarief:i,eenheid:'per set',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}const fabric=APP.stap1?.fabric;const isBanenstof=getEffectiveWidthtype()!=='hoogte';const stofbr=parseFloat(fabric?.stofmaat)||0;if(isBanenstof&&stofbr>0){const raambreedte=parseFloat(s3.maten.breedte)||0;const aantalBanen=Math.ceil(raambreedte/stofbr);const naden=aantalBanen>1?aantalBanen-1:0;if(naden>0){const i=VOUW_PRIJZEN.verticale_naad*naden;toeslagen.push({label:`Verticale naden (${naden}×, stofbreedte ${stofbr} cm)`,tarief:VOUW_PRIJZEN.verticale_naad,eenheid:'per naad',aantal:naden,inkoop:i,verkoop:i*VERKOOP_FACTOR});}}if(vT?.vouwBediening==='gemotoriseerd'){const motorItems=[{label:'Somfy motor incl. inbouw',tarief:VOUW_PRIJZEN.somfy_motor}];motorItems.forEach(mi=>{toeslagen.push({label:mi.label,tarief:mi.tarief,eenheid:'per stuk',aantal:1,inkoop:mi.tarief,verkoop:mi.tarief*VERKOOP_FACTOR});});if(vT?.vouwMotorBatterij){const i=VOUW_PRIJZEN.batterijpakket;toeslagen.push({label:'Batterijpakket li-ion',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(vT?.vouwMotorOplader){const i=VOUW_PRIJZEN.oplader;toeslagen.push({label:'Oplader batterijpakket',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}const ab=vT?.vouwMotorAfstandsbed;if(ab==='1'){toeslagen.push({label:'Situo 1-kanaals',tarief:VOUW_PRIJZEN.afstandsbed_1,eenheid:'per stuk',aantal:1,inkoop:VOUW_PRIJZEN.afstandsbed_1,verkoop:VOUW_PRIJZEN.afstandsbed_1*VERKOOP_FACTOR});}else if(ab==='5'){toeslagen.push({label:'Situo 5-kanaals',tarief:VOUW_PRIJZEN.afstandsbed_5,eenheid:'per stuk',aantal:1,inkoop:VOUW_PRIJZEN.afstandsbed_5,verkoop:VOUW_PRIJZEN.afstandsbed_5*VERKOOP_FACTOR});}else if(ab==='16'){toeslagen.push({label:'Telis 16-kanaals',tarief:VOUW_PRIJZEN.afstandsbed_16,eenheid:'per stuk',aantal:1,inkoop:VOUW_PRIJZEN.afstandsbed_16,verkoop:VOUW_PRIJZEN.afstandsbed_16*VERKOOP_FACTOR});}if(vT?.vouwMotorTrafo){const i=VOUW_PRIJZEN.transformator;toeslagen.push({label:'Transformator 230v/12v',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}}}return toeslagen; }
 
@@ -1863,7 +1881,7 @@ function validate() {
       const tunnelHoogteV = parseFloat(APP.stap3.zoomen?.bovenzoomHoogte) || 6;
       const hoofdjeTunnelV = parseFloat(APP.stap3.zoomen?.hoofdje) || 0;
       const spanningV = APP.stap3.typeSpecific?.spanning || 'boven-onder';
-      const tunnelAllowanceV = spanningV === 'boven-onder' ? (tunnelHoogteV*2) : tunnelHoogteV;
+      const tunnelAllowanceV = spanningV === 'boven-onder' ? (tunnelHoogteV*4) : (tunnelHoogteV*2);
       onderzoomH = 0; bovenzoomH = tunnelAllowanceV; uitvalBoven = 0; extraVal = hoofdjeTunnelV;
       benodigdeHoogte = hoogte + hoofdjeTunnelV + tunnelAllowanceV + 5;
     } else {
