@@ -869,7 +869,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
     <div style="padding:0 36px 20px">
       <button id="btnLevBestelling" onclick="finalizeSessie()" style="display:none;width:100%;padding:12px 18px;background:var(--green);color:white;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#4a6a4f'" onmouseout="this.style.background='var(--green)'">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Sessie afronden — PDFs, Planner & leveranciersbestellingen (<span id="btnLevText">0 bonnen</span>)
+        Sessie afronden — PDFs &amp; stofbestelling naar atelier (<span id="btnLevText">0 bonnen</span>)
       </button>
     </div>
   </div>
@@ -2300,13 +2300,14 @@ function generateConfectieBonPDF(orderPayload, c) {
   const isVouw = orderPayload.model.id === 'vouw';
   const isWave = orderPayload.model.id === 'wave';
   const isPlooi = orderPayload.model.id === 'plooi';
-  const titleText = isVouw ? 'Vouwgordijn ingevuld' : `${orderPayload.model.naam} ingevuld`;
+  const titleText = isVouw ? 'Werkbon atelier — Vouwgordijn' : `Werkbon atelier — ${orderPayload.model.naam}`;
   doc.text(titleText, lm, y);
   y += 8;
 
   // ── Helper: label-value row ──
   function row(label, value) {
     if (value === undefined || value === null || value === '') return;
+    if (y > 192) { doc.addPage(); y = 14; }
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(...mid);
@@ -2340,6 +2341,15 @@ function generateConfectieBonPDF(orderPayload, c) {
   row('Merk, stofnaam en kleurnr:', `${orderPayload.stof.naam}${kleurTxt}`);
   if (orderPayload.stof.artikelnr) row('Artikelnummer:', orderPayload.stof.artikelnr);
   if (orderPayload.gekanteld) row('Stof gekanteld:', 'Ja');
+
+  // ── Stofbestelling (atelier bestelt zelf bij de leverancier) ──
+  row('Leverancier stof:', orderPayload.stof.leverancier);
+  row('Te bestellen stof:', c.isHoogtestof ? `${c.totaalMIncl.toFixed(2)} m (kamerhoog)` : `${c.totaalMIncl.toFixed(2)} m (${c.totaalBanen} banen × ${c.knipmaat} cm)`);
+  if (orderPayload.voering) {
+    row('Voering (bestellen):', `${orderPayload.voering.naam}${orderPayload.voering.artikelnr ? ' · ' + orderPayload.voering.artikelnr : ''}`);
+    row('Leverancier voering:', orderPayload.voering.leverancier);
+    row('Te bestellen voering:', `${orderPayload.voering.meters.toFixed(2)} m`);
+  }
 
   divider();
 
@@ -2396,11 +2406,6 @@ function generateConfectieBonPDF(orderPayload, c) {
     row('Onderzijde afwerking:', ozLabel);
     row('Loodjes in zijzoom:', s3.zoomen.gewichtjesZijzoom !== false ? 'Ja' : 'Nee');
 
-    if (orderPayload.voering) {
-      divider();
-      row('Voering:', `${orderPayload.voering.naam}`);
-      row('Voering meters:', `${orderPayload.voering.meters.toFixed(2)} m`);
-    }
   }
 
   // ── Memo ──
@@ -2713,11 +2718,11 @@ async function finalizeSessie() {
     const kamerkant = f.kamerkant ? `Kamerkant: ${f.kamerkant}` : '';
     const gekanteld = order.gekanteld ? ' (GEKANTELD)' : '';
     if (isVouw) {
-      order.plannerNotities = [`${f.name} ${f.artikelnr}`, kamerkant, `Vouwgordijn ${(s3.typeSpecific?.vouwType||'type4').replace('type','')}`, `${order.maten.breedte} × ${order.maten.hoogte} cm`, `${order.maten.totaalM} m`].filter(Boolean).join('\n');
+      order.plannerNotities = [`${f.name} ${f.artikelnr}`, f.leverancier ? `Leverancier: ${f.leverancier}` : '', kamerkant, `Vouwgordijn ${(s3.typeSpecific?.vouwType||'type4').replace('type','')}`, `${order.maten.breedte} × ${order.maten.hoogte} cm`, `${order.maten.totaalM} m`].filter(Boolean).join('\n');
     } else if (isWave) {
-      order.plannerNotities = [`${f.name} ${f.artikelnr}${gekanteld}`, kamerkant, `Wavegordijn | ${order.verdeling}`, `${c.totalRunners} runners × ${c.wavelengte} cm`, `${order.maten.totaalM} m`].filter(Boolean).join('\n');
+      order.plannerNotities = [`${f.name} ${f.artikelnr}${gekanteld}`, f.leverancier ? `Leverancier: ${f.leverancier}` : '', kamerkant, `Wavegordijn | ${order.verdeling}`, `${c.totalRunners} runners × ${c.wavelengte} cm`, `${order.maten.totaalM} m`, order.voering ? `Voering: ${order.voering.naam} ${order.voering.artikelnr||''} — ${order.voering.meters} m` : ''].filter(Boolean).join('\n');
     } else {
-      order.plannerNotities = [`${f.name} ${f.artikelnr}${gekanteld}`, kamerkant, `${order.model.naam} | ${order.verdeling}`, `${order.maten.totaalM} m`].filter(Boolean).join('\n');
+      order.plannerNotities = [`${f.name} ${f.artikelnr}${gekanteld}`, f.leverancier ? `Leverancier: ${f.leverancier}` : '', kamerkant, `${order.model.naam} | ${order.verdeling}`, `${order.maten.totaalM} m`, order.voering ? `Voering: ${order.voering.naam} ${order.voering.artikelnr||''} — ${order.voering.meters} m` : ''].filter(Boolean).join('\n');
     }
   });
 
@@ -2772,18 +2777,29 @@ async function finalizeSessie() {
     }
   }
 
-  // ── Stap 3: Leveranciersbestellingen (xlsx) toevoegen aan ZIP ──
-  const xlsxCount = generateLeveranciersBestellingen(zip);
+  // ── Stap 3: Leveranciersbestellingen (xlsx per leverancier) voor het atelier ──
+  // Atelier bestelt de stof zelf. Bij actieve koppeling gaan de bestanden mee naar het atelier;
+  // anders komen ze als fallback in de ZIP.
+  const m365Actief = !!(M365_CONFIG.M365_ENABLED && M365_CONFIG.POWER_AUTOMATE_WEBHOOK);
+  const bestelBijlagen = [];
+  const xlsxCount = generateLeveranciersBestellingen(m365Actief ? null : zip, m365Actief ? bestelBijlagen : null);
 
   // ── Stap 4: Planner-taken versturen (indien actief) ──
   let plannerStatus = 'skipped';
   if (M365_CONFIG.M365_ENABLED && M365_CONFIG.POWER_AUTOMATE_WEBHOOK) {
     plannerStatus = 'success';
-    for (const order of SESSION_ORDERS) {
+    for (const [oi, order] of SESSION_ORDERS.entries()) {
       try {
         // Maak kopie zonder interne snapshots (te groot/circulair voor JSON)
         const cleanPayload = {};
         Object.keys(order).forEach(k => { if (!k.startsWith('_')) cleanPayload[k] = order[k]; });
+        // Stofbestelling voor het atelier: leesbare regels per bon
+        const bestelRegels = [{ type:'Stof', leverancier: order.stof.leverancier, naam: order.stof.naam, artikelnr: order.stof.artikelnr, kleur: order.stof.kleur, meters: order.maten.totaalM, banen: order.isHoogtestof ? null : order.maten.banen, knipmaat: order.isHoogtestof ? null : order.maten.knipmaat }];
+        if (order.voering) bestelRegels.push({ type:'Voering', leverancier: order.voering.leverancier, naam: order.voering.naam, artikelnr: order.voering.artikelnr, meters: order.voering.meters });
+        cleanPayload.bestelRegels = bestelRegels;
+        cleanPayload.bestelTekst = bestelRegels.map(r => `${r.type}: ${r.naam} ${r.artikelnr||''} (${r.leverancier||'?'}) — ${r.meters} m`).join('\n');
+        // Excel-bestellingen per leverancier één keer meesturen (bij de eerste bon van de sessie)
+        if (oi === 0 && bestelBijlagen.length) cleanPayload.leveranciersBestellingen = bestelBijlagen;
         const resp = await fetch(M365_CONFIG.POWER_AUTOMATE_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cleanPayload) });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       } catch(e) { console.error(`Planner fout bon ${order.bonNr}:`, e); plannerStatus = 'error'; }
@@ -2806,13 +2822,13 @@ async function finalizeSessie() {
   // ── Stap 6: Bevestiging ──
   closeOrderConfirm();
   const plannerMsg = plannerStatus === 'success' ? ` · ${totaal} Planner-taken` : plannerStatus === 'error' ? ' · Planner: deels mislukt' : '';
-  showToast(`✓ Sessie afgerond: ${pdfCount} PDFs + ${xlsxCount} bestelling${xlsxCount===1?'':'en'} in ZIP${plannerMsg}`);
+  showToast(m365Actief ? `✓ Sessie afgerond: ${pdfCount} PDFs in ZIP · ${xlsxCount} stofbestelling${xlsxCount===1?'':'en'} naar atelier${plannerMsg}` : `✓ Sessie afgerond: ${pdfCount} PDFs + ${xlsxCount} bestelling${xlsxCount===1?'':'en'} in ZIP (koppeling niet actief — stuur de bestellingen zelf naar het atelier)`);
   const tbs = document.getElementById('topbarSession');
   if (tbs) tbs.style.display = 'none';
 }
 
 // ── Leveranciersbestellingen genereren (xlsx per leverancier, in ZIP of los) ──
-function generateLeveranciersBestellingen(zip) {
+function generateLeveranciersBestellingen(zip, collect) {
   if (!SESSION_ORDERS.length) { if(!zip) showToast('Geen bonnen in deze sessie.'); return 0; }
   if (typeof XLSX === 'undefined') { if(!zip) showToast('SheetJS nog niet geladen.'); return 0; }
 
@@ -2897,8 +2913,11 @@ function generateLeveranciersBestellingen(zip) {
     XLSX.utils.book_append_sheet(wb, ws, 'Bestelling');
 
     const filename = `Bestelling_${lev.replace(/\s+/g, '_')}_${commissie.replace(/\s+/g, '_')}_${datum}.xlsx`;
-    if (zip) {
-      // Toevoegen aan ZIP
+    if (collect) {
+      // Voor het atelier: base64 meesturen met de Power Automate payload
+      collect.push({ leverancier: lev, filename, base64: XLSX.write(wb, { bookType: 'xlsx', type: 'base64' }) });
+    } else if (zip) {
+      // Toevoegen aan ZIP (fallback als Planner/M365 niet actief is)
       const xlsxData = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       zip.file(`Leveranciersbestellingen/${filename}`, xlsxData);
     } else {
