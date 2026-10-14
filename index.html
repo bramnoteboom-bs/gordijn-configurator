@@ -673,7 +673,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
         </div>
         <div class="section-card">
           <div class="section-head"><div class="section-head-left"><div class="section-icon"><svg viewBox="0 0 16 16" fill="none"><path d="M2 2h3l2 8h6l2-6H5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="13" r="1" fill="currentColor"/><circle cx="12" cy="13" r="1" fill="currentColor"/></svg></div><div class="section-title-card">Artikelen</div></div></div>
-          <table class="artikelen-table"><thead><tr><th>Artikelnr</th><th>Omschrijving</th><th>Aantal</th><th class="col-inkoop">Inkoop</th><th>Verkoop</th></tr></thead><tbody id="o4Artikelen"></tbody><tfoot><tr class="total-row"><td colspan="3" style="text-align:right;color:var(--text-mid)">Subtotaal</td><td class="col-inkoop" id="o4TotaalInkoop">—</td><td id="o4Totaal">—</td></tr><tr class="total-row"><td colspan="3" style="text-align:right;color:var(--text-mid);font-size:11px;font-weight:400">BTW 21%</td><td class="col-inkoop"></td><td id="o4BTW" style="font-size:12px;font-weight:500;color:var(--text-mid)">—</td></tr><tr class="total-row"><td colspan="3" style="text-align:right;color:var(--text-mid)">Totaal incl. BTW</td><td class="col-inkoop"></td><td id="o4TotaalBTW" style="font-size:17px;color:var(--terracotta)">—</td></tr></tfoot></table>
+          <table class="artikelen-table"><thead><tr><th>Artikelnr</th><th>Omschrijving</th><th>Aantal</th><th class="col-inkoop">Inkoop</th><th>Verkoop</th></tr></thead><tbody id="o4Artikelen"></tbody><tfoot><tr class="total-row"><td colspan="3" style="text-align:right;color:var(--text-mid)">Subtotaal excl. BTW</td><td class="col-inkoop" id="o4TotaalInkoop">—</td><td id="o4Totaal">—</td></tr><tr class="total-row"><td colspan="3" style="text-align:right;color:var(--text-mid);font-size:11px;font-weight:400">BTW 21%</td><td class="col-inkoop"></td><td id="o4BTW" style="font-size:12px;font-weight:500;color:var(--text-mid)">—</td></tr><tr class="total-row"><td colspan="3" style="text-align:right;color:var(--text-mid)">Totaal incl. BTW</td><td class="col-inkoop"></td><td id="o4TotaalBTW" style="font-size:17px;color:var(--terracotta)">—</td></tr></tfoot></table>
         </div>
         <div class="output-row">
           <button class="btn-pdf-klant" onclick="doPrint('klant')"><div class="btn-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4h8l3 3v9a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5"/><path d="M13 4v4h3M7 12h6M7 15h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="btn-label-wrap"><span class="btn-label">PDF Klant</span><span class="btn-sublabel">Stof, model, maten & prijs</span></div></button>
@@ -2033,6 +2033,7 @@ function s3recalc() {
       totaalBar.style.display = 'block';
       totaalBar.innerHTML = `<div class="calc-totaal-label">Verkoopprijs incl. BTW</div><div class="calc-totaal-val">${fmtE(grandTotal)}</div><div class="calc-totaal-btw">Waarvan BTW 21%: ${fmtE(btwBedrag)} · Excl. BTW: ${fmtE(exclBTW)}</div>`;
     } else { totaalBar.style.display = 'none'; }
+    try { const sb = document.getElementById('sectionBevestiging'); if (sb && !sb.classList.contains('disabled')) buildStap4(); } catch (e) {}
     return; // Stop hier — vouw heeft eigen rendering
   }
 
@@ -2189,6 +2190,12 @@ function s3recalc() {
     const el = document.getElementById('ongelijkTotaal');
     if (el) { el.style.color = diff > 5 ? '#E8A870' : 'var(--text-dim)'; el.textContent = `Totaal: ${APP.stap3.maten.ongelijkLinks} + ${APP.stap3.maten.ongelijkRechts} = ${som} cm ${diff > 5 ? `⚠ verschilt ${diff} cm` : '✓ klopt'}`; }
   }
+
+  // Orderoverzicht (stap 4) altijd gelijk houden met de live berekening
+  try {
+    const sb = document.getElementById('sectionBevestiging');
+    if (sb && !sb.classList.contains('disabled')) buildStap4();
+  } catch (e) { console.warn('Overzicht bijwerken mislukt:', e); }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2235,9 +2242,9 @@ function buildStap4() {
   const voeringRij=c.voeringFabric&&c.voeringM>0?`<tr><td>${c.voeringFabric.artikelnr}</td><td>${c.voeringFabric.name.toLowerCase()}</td><td>${c.voeringM.toFixed(2)} m</td><td class="col-inkoop">${fmtE((c.voeringFabric.inkoopPrijs||c.voeringFabric.prijsPerMeter/1.21||0)*c.voeringM)}</td><td>${fmtE(voeringPrijs)}</td></tr>`:'';
   const confRij=conf?`<tr><td>—</td><td>${conf.omschrijving}</td><td>${Number.isInteger(conf.aantal)?conf.aantal:conf.aantal.toFixed(2)} ${conf.eenheid}</td><td class="col-inkoop">${fmtE(conf.inkoop||conf.verkoop/VERKOOP_FACTOR)}</td><td>${fmtE(conf.verkoop)}</td></tr>`:'';
   const toesRijen=toeslagen.map(t=>`<tr><td>—</td><td>${t.label}</td><td>${t.aantal} × ${fmtE(t.tarief)}</td><td class="col-inkoop">${fmtE(t.inkoop)}</td><td>${fmtE(t.verkoop)}</td></tr>`).join('');
-  const stofInkoop=(f.inkoopPrijs||f.prijsPerMeter/1.21||0)*c.totaalMIncl;const vInk=(c.voeringFabric?.inkoopPrijs||(c.voeringFabric?.prijsPerMeter/1.21)||0)*c.voeringM;const cInk=conf?.inkoop||(conf?.verkoop||0)/VERKOOP_FACTOR;const tInk=toeslagen.reduce((s,t)=>s+t.inkoop,0);const totInk=stofInkoop+vInk+cInk+tInk;const btw=totaal*0.21;const totBTW=totaal+btw;
+  const stofInkoop=(f.inkoopPrijs||f.prijsPerMeter/1.21||0)*c.totaalMIncl;const vInk=(c.voeringFabric?.inkoopPrijs||(c.voeringFabric?.prijsPerMeter/1.21)||0)*c.voeringM;const cInk=conf?.inkoop||(conf?.verkoop||0)/VERKOOP_FACTOR;const tInk=toeslagen.reduce((s,t)=>s+t.inkoop,0);const totInk=stofInkoop+vInk+cInk+tInk;const btw=totaal/1.21*0.21;const totBTW=totaal;
   document.getElementById('o4Artikelen').innerHTML=`<tr><td>${f.artikelnr}</td><td>${f.name.toLowerCase()}</td><td>${c.totaalMIncl.toFixed(2)} m</td><td class="col-inkoop">${fmtE(stofInkoop)}</td><td>${fmtE(stofPrijs)}</td></tr>${voeringRij}${confRij}${toesRijen}`;
-  document.getElementById('o4Totaal').textContent=fmtE(totaal);
+  document.getElementById('o4Totaal').textContent=fmtE(totaal-btw);
   document.getElementById('o4TotaalInkoop').textContent=fmtE(totInk);
   document.getElementById('o4BTW').textContent=fmtE(btw);
   document.getElementById('o4TotaalBTW').textContent=fmtE(totBTW);
