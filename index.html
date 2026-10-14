@@ -1974,7 +1974,7 @@ function s3recalc() {
   const btwLbl = ink ? 'excl. BTW' : 'incl. BTW';
   const F = ink ? 1 : VERKOOP_FACTOR;
   const tarV = x => (x && x.prijsPerMeter) || 0;
-  const tarI = x => (x && (x.inkoopPrijs || (x.prijsPerMeter || 0) / 1.21)) || 0;
+  const tarI = x => (x && (x.inkoopPrijs || (x.prijsPerMeter || 0) / VERKOOP_FACTOR)) || 0;
   const stofTar = x => ink ? tarI(x) : tarV(x);
   const cAmt = x => ink ? (x.inkoop ?? (x.verkoop || 0) / VERKOOP_FACTOR) : x.verkoop;
   const totaalHtml = (gVerk, gInk) => {
