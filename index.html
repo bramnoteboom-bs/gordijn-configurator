@@ -81,6 +81,13 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
 .right-header{background:#fff;border-bottom:1px solid var(--border-light);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .right-header-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--brown-text);}
 .right-header-sub{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}
+.right-header{flex-wrap:wrap;row-gap:4px;}
+.prijs-switch{width:100%;flex-basis:100%;position:relative;display:flex;background:var(--greige-light);border:1px solid var(--border);border-radius:999px;padding:2px;margin-top:8px;}
+.prijs-switch button{position:relative;z-index:1;flex:1;border:0;background:transparent;font:inherit;font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:5px 10px;border-radius:999px;cursor:pointer;color:var(--text-mid);white-space:nowrap;transition:color .2s;}
+.prijs-switch .ps-thumb{position:absolute;top:2px;bottom:2px;left:2px;width:calc(50% - 2px);background:var(--brown);border-radius:999px;transition:transform .2s;}
+.prijs-switch.inkoop .ps-thumb{transform:translateX(100%);background:var(--terracotta);}
+.prijs-switch button.active{color:#fff;}
+.right-body.inkoop-view{box-shadow:inset 3px 0 0 var(--terracotta);}
 .right-body{flex:1;overflow-y:auto;padding:0;}
 .right-footer{padding:16px 24px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;}
 
@@ -689,6 +696,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
     <div class="right-header">
       <div class="right-header-title">Live berekening</div>
       <div class="right-header-sub">Automatisch bijgewerkt</div>
+      <div class="prijs-switch" id="prijsSwitch" role="group" aria-label="Prijsweergave"><span class="ps-thumb"></span><button type="button" id="psVerkoop" class="active" onclick="setPrijsWeergave('verkoop')">Verkoop incl. btw</button><button type="button" id="psInkoop" onclick="setPrijsWeergave('inkoop')">Inkoop excl. btw</button></div>
     </div>
     <div class="right-body" id="rightBody">
       <!-- Selection summary -->
@@ -1933,6 +1941,20 @@ function renderValidationAlerts(container, validation) {
 //    Wordt getriggerd bij elke invoerwijziging.
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Prijsweergave in het live paneel: 'verkoop' (incl. btw, standaard) of 'inkoop' (excl. btw). Alleen weergave, bewust niet bewaard.
+let PRIJS_WEERGAVE = 'verkoop';
+function setPrijsWeergave(m) {
+  PRIJS_WEERGAVE = (m === 'inkoop') ? 'inkoop' : 'verkoop';
+  const sw = document.getElementById('prijsSwitch');
+  if (sw) sw.classList.toggle('inkoop', PRIJS_WEERGAVE === 'inkoop');
+  const a = document.getElementById('psVerkoop'), b = document.getElementById('psInkoop');
+  if (a) a.classList.toggle('active', PRIJS_WEERGAVE === 'verkoop');
+  if (b) b.classList.toggle('active', PRIJS_WEERGAVE === 'inkoop');
+  const rb = document.getElementById('rightBody');
+  if (rb) rb.classList.toggle('inkoop-view', PRIJS_WEERGAVE === 'inkoop');
+  try { s3recalc(); } catch (e) { console.warn(e); }
+}
+
 function s3recalc() {
   const f = APP.stap1.fabric;
   const model = APP.stap2?.model;
@@ -1947,6 +1969,19 @@ function s3recalc() {
   const safeM = n => (!hasValid || !isFinite(n)) ? '—' : `${n.toFixed(2)} m`;
   const safeEur = n => (!hasValid || !isFinite(n)) ? '—' : `€ ${n.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
   const fmtE = n => `€ ${n.toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  // Prijsweergave (alleen presentatie): verkoop incl. btw of inkoop excl. btw
+  const ink = PRIJS_WEERGAVE === 'inkoop';
+  const btwLbl = ink ? 'excl. BTW' : 'incl. BTW';
+  const F = ink ? 1 : VERKOOP_FACTOR;
+  const tarV = x => (x && x.prijsPerMeter) || 0;
+  const tarI = x => (x && (x.inkoopPrijs || (x.prijsPerMeter || 0) / 1.21)) || 0;
+  const stofTar = x => ink ? tarI(x) : tarV(x);
+  const cAmt = x => ink ? (x.inkoop ?? (x.verkoop || 0) / VERKOOP_FACTOR) : x.verkoop;
+  const totaalHtml = (gVerk, gInk) => {
+    if (ink) return `<div class="calc-totaal-label">Inkoopwaarde excl. BTW</div><div class="calc-totaal-val">${fmtE(gInk)}</div><div class="calc-totaal-btw">Verkoopprijs incl. BTW: ${fmtE(gVerk)}</div>`;
+    const bt = gVerk / 1.21 * 0.21;
+    return `<div class="calc-totaal-label">Verkoopprijs incl. BTW</div><div class="calc-totaal-val">${fmtE(gVerk)}</div><div class="calc-totaal-btw">Waarvan BTW 21%: ${fmtE(bt)} · Excl. BTW: ${fmtE(gVerk - bt)}</div>`;
+  };
 
   // ── VOUWGORDIJN: aparte rendering ──
   if (model.id === 'vouw') {
@@ -1972,7 +2007,7 @@ function s3recalc() {
         stofDetail = `${stofBanen} ${stofBanen===1?'baan':'banen'} × ${hoogte} cm + 20 cm overlap`;
       }
     }
-    const stofPrijs = stofM1 * (f.prijsPerMeter || 0); // verkoopprijs incl BTW direct
+    const stofPrijs = stofM1 * stofTar(f);
 
     html += `<div class="calc-section"><div class="calc-section-label gordijn">Vouwgordijn stof</div>`;
     html += `<div class="calc-row"><span class="calc-key">Raambreedte</span><span class="calc-val">${breedte>0?breedte+' cm':'—'}</span></div>`;
@@ -1982,7 +2017,7 @@ function s3recalc() {
       html += `<div class="calc-row"><span class="calc-key">Banen (stofbreedte ${stofbreedte} cm)</span><span class="calc-val">${stofBanen}</span></div>`;
     }
     html += `<div class="calc-row" style="font-weight:500"><span class="calc-key">Strekkende meters stof</span><span class="calc-val">${hasValid?stofM1.toFixed(2)+' m':'—'}</span></div>`;
-    html += `<div class="calc-row"><span class="calc-key" style="color:var(--text-dim)">Stofprijs (€ ${f.prijsPerMeter.toFixed(2)}/m incl. BTW)</span><span class="calc-val" style="color:var(--text-mid)">${hasValid&&f.prijsPerMeter?fmtE(stofPrijs):'—'}</span></div>`;
+    html += `<div class="calc-row"><span class="calc-key" style="color:var(--text-dim)">Stofprijs (€ ${stofTar(f).toFixed(2)}/m ${btwLbl})</span><span class="calc-val" style="color:var(--text-mid)">${hasValid&&f.prijsPerMeter?fmtE(stofPrijs):'—'}</span></div>`;
     html += `</div>`;
 
     // Confectie (per m²)
@@ -1993,17 +2028,17 @@ function s3recalc() {
     if (conf && isFinite(conf.verkoop)) {
       const isMin = conf.inkoop <= VOUW_PRIJZEN.confectie_minimum * 1.001;
       html += `<div class="calc-row"><span class="calc-key">${conf.omschrijving}</span><span class="calc-val"></span></div>`;
-      html += `<div class="calc-row"><span class="calc-key" style="font-size:11px;color:var(--text-dim)">${m2.toFixed(2)} m² × € ${VOUW_PRIJZEN.confectie_per_m2.toFixed(2)}/m²${isMin?' (minimum € '+VOUW_PRIJZEN.confectie_minimum.toFixed(2)+')':''}</span><span class="calc-val" style="color:var(--brown-text)">${fmtE(conf.verkoop)}</span></div>`;
+      html += `<div class="calc-row"><span class="calc-key" style="font-size:11px;color:var(--text-dim)">${m2.toFixed(2)} m² × € ${(VOUW_PRIJZEN.confectie_per_m2*F).toFixed(2)}/m²${isMin?' (minimum € '+(VOUW_PRIJZEN.confectie_minimum*F).toFixed(2)+')':''}</span><span class="calc-val" style="color:var(--brown-text)">${fmtE(cAmt(conf))}</span></div>`;
     }
     html += `</div>`;
 
     // Toeslagen
     const validToes = toeslagen.filter(t => isFinite(t.verkoop));
     if (validToes.length > 0) {
-      const totToes = validToes.reduce((s, t) => s + t.verkoop, 0);
+      const totToes = validToes.reduce((s, t) => s + cAmt(t), 0);
       html += `<div class="calc-section"><div class="calc-section-label toeslagen">Opties & toeslagen</div>`;
       validToes.forEach(t => {
-        html += `<div class="calc-row" style="font-size:11px"><span class="calc-key" style="color:var(--terracotta)">${t.label}</span><span style="font-size:12px;color:var(--terracotta)">${fmtE(t.verkoop)}</span></div>`;
+        html += `<div class="calc-row" style="font-size:11px"><span class="calc-key" style="color:var(--terracotta)">${t.label}</span><span style="font-size:12px;color:var(--terracotta)">${fmtE(cAmt(t))}</span></div>`;
       });
       html += `<div class="calc-row" style="font-weight:500"><span class="calc-key">Totaal opties</span><span class="calc-val" style="color:var(--terracotta)">${fmtE(totToes)}</span></div>`;
       html += `</div>`;
@@ -2021,17 +2056,16 @@ function s3recalc() {
 
     // Grand total — stofprijs + confectie + toeslagen
     const confVerkoop = (conf?.verkoop && isFinite(conf.verkoop)) ? conf.verkoop : 0;
-    const totToesVerkoop = validToes.reduce((s,t)=>s+t.verkoop,0);
-    const grandTotal = stofPrijs + confVerkoop + totToesVerkoop;
+    const confInk = (conf && isFinite(conf.verkoop)) ? (conf.inkoop ?? conf.verkoop / VERKOOP_FACTOR) : 0;
+    const grandVerk = stofM1 * tarV(f) + confVerkoop + validToes.reduce((s,t)=>s+t.verkoop,0);
+    const grandInk = stofM1 * tarI(f) + confInk + validToes.reduce((s,t)=>s+(t.inkoop ?? t.verkoop / VERKOOP_FACTOR),0);
     const showTotaal = hasValid && f?.prijsPerMeter;
 
     let totaalBar = document.getElementById('calcTotaalBar');
     if (!totaalBar) { totaalBar = document.createElement('div'); totaalBar.id = 'calcTotaalBar'; totaalBar.className = 'calc-totaal-bar'; document.getElementById('rightBody').appendChild(totaalBar); }
     if (showTotaal) {
-      const btwBedrag = grandTotal / 1.21 * 0.21; // BTW terugrekenen uit incl. prijs
-      const exclBTW = grandTotal - btwBedrag;
       totaalBar.style.display = 'block';
-      totaalBar.innerHTML = `<div class="calc-totaal-label">Verkoopprijs incl. BTW</div><div class="calc-totaal-val">${fmtE(grandTotal)}</div><div class="calc-totaal-btw">Waarvan BTW 21%: ${fmtE(btwBedrag)} · Excl. BTW: ${fmtE(exclBTW)}</div>`;
+      totaalBar.innerHTML = totaalHtml(grandVerk, grandInk);
     } else { totaalBar.style.display = 'none'; }
     try { const sb = document.getElementById('sectionBevestiging'); if (sb && !sb.classList.contains('disabled')) buildStap4(); } catch (e) {}
     return; // Stop hier — vouw heeft eigen rendering
@@ -2089,7 +2123,7 @@ function s3recalc() {
     html += `<div class="calc-row"><span class="calc-key" style="color:var(--terracotta)">Retourplooi +8%</span><span class="calc-val" style="color:var(--terracotta)">${safeM(c.retourplooiToeslag)}</span></div>`;
     html += `<div class="calc-row" style="font-weight:600"><span class="calc-key">Totaal incl. retour</span><span class="calc-val">${safeM(c.totaalMIncl)}</span></div>`;
   }
-  html += `<div class="calc-row"><span class="calc-key" style="color:var(--text-dim)">Stofprijs (€ ${f.prijsPerMeter.toFixed(2)}/m incl. BTW)</span><span class="calc-val" style="color:var(--text-mid)">${f.prijsPerMeter?safeEur(c.totaalMIncl*f.prijsPerMeter):'—'}</span></div>`;
+  html += `<div class="calc-row"><span class="calc-key" style="color:var(--text-dim)">Stofprijs (€ ${stofTar(f).toFixed(2)}/m ${btwLbl})</span><span class="calc-val" style="color:var(--text-mid)">${f.prijsPerMeter?safeEur(c.totaalMIncl*stofTar(f)):'—'}</span></div>`;
   html += `</div>`;
 
   // Voering section
@@ -2104,7 +2138,7 @@ function s3recalc() {
       html += `<div class="calc-row"><span class="calc-key">Knipmaat voering</span><span class="calc-val">${c.voeringKnipmaat} cm</span></div>`;
     }
     html += `<div class="calc-row" style="font-weight:500"><span class="calc-key">Strekkende meters</span><span class="calc-val">${c.voeringM.toFixed(2)} m</span></div>`;
-    html += `<div class="calc-row"><span class="calc-key" style="color:var(--text-dim)">Prijs (€ ${vf.prijsPerMeter.toFixed(2)}/m incl. BTW)</span><span class="calc-val" style="color:var(--text-mid)">${vf.prijsPerMeter?fmtE(c.voeringM*vf.prijsPerMeter):'—'}</span></div>`;
+    html += `<div class="calc-row"><span class="calc-key" style="color:var(--text-dim)">Prijs (€ ${stofTar(vf).toFixed(2)}/m ${btwLbl})</span><span class="calc-val" style="color:var(--text-mid)">${vf.prijsPerMeter?fmtE(c.voeringM*stofTar(vf)):'—'}</span></div>`;
     html += `</div>`;
   }
 
@@ -2115,17 +2149,17 @@ function s3recalc() {
     const aantalStr = Number.isInteger(conf.aantal) ? conf.aantal : conf.aantal.toFixed(2);
     html += `<div class="calc-section"><div class="calc-section-label confectie">Confectie</div>`;
     html += `<div class="calc-row"><span class="calc-key">${conf.omschrijving}</span><span class="calc-val"></span></div>`;
-    html += `<div class="calc-row"><span class="calc-key" style="font-size:11px;color:var(--text-dim)">${aantalStr} × € ${conf.tarief.toFixed(2)} ${conf.eenheid}</span><span class="calc-val" style="color:var(--brown-text)">${fmtE(conf.verkoop)}</span></div>`;
+    html += `<div class="calc-row"><span class="calc-key" style="font-size:11px;color:var(--text-dim)">${aantalStr} × € ${(conf.tarief*F).toFixed(2)} ${conf.eenheid}</span><span class="calc-val" style="color:var(--brown-text)">${fmtE(cAmt(conf))}</span></div>`;
     html += `</div>`;
   }
 
   // Toeslagen
   const validToes = toeslagen.filter(t => isFinite(t.verkoop));
   if (validToes.length > 0) {
-    const totToes = validToes.reduce((s, t) => s + t.verkoop, 0);
+    const totToes = validToes.reduce((s, t) => s + cAmt(t), 0);
     html += `<div class="calc-section"><div class="calc-section-label toeslagen">Toeslagen</div>`;
     validToes.forEach(t => {
-      html += `<div class="calc-row" style="font-size:11px"><span class="calc-key" style="color:var(--terracotta)">${t.label} <span style="color:var(--text-dim)">(${t.aantal}× € ${t.tarief.toFixed(2)})</span></span><span style="font-size:12px;color:var(--terracotta)">${fmtE(t.verkoop)}</span></div>`;
+      html += `<div class="calc-row" style="font-size:11px"><span class="calc-key" style="color:var(--terracotta)">${t.label} <span style="color:var(--text-dim)">(${t.aantal}× € ${(t.tarief*F).toFixed(2)})</span></span><span style="font-size:12px;color:var(--terracotta)">${fmtE(cAmt(t))}</span></div>`;
     });
     html += `<div class="calc-row" style="font-weight:500"><span class="calc-key">Totaal toeslagen</span><span class="calc-val" style="color:var(--terracotta)">${fmtE(totToes)}</span></div>`;
     html += `</div>`;
@@ -2150,9 +2184,13 @@ function s3recalc() {
 
   // Grand total bar
   const stofVerkoop = hasValid && isFinite(c.totaalMIncl) ? (f?.prijsPerMeter||0)*c.totaalMIncl + (c.voeringFabric?.prijsPerMeter||0)*c.voeringM : 0;
+  const stofInkoopW = hasValid && isFinite(c.totaalMIncl) ? tarI(f)*c.totaalMIncl + tarI(c.voeringFabric)*c.voeringM : 0;
   const confVerkoop = (conf?.verkoop && isFinite(conf.verkoop)) ? conf.verkoop : 0;
+  const confInk = (conf && isFinite(conf.verkoop)) ? (conf.inkoop ?? conf.verkoop / VERKOOP_FACTOR) : 0;
   const totToesVerkoop = validToes.reduce((s,t)=>s+t.verkoop,0);
-  const grandTotal = stofVerkoop + confVerkoop + totToesVerkoop;
+  const totToesInk = validToes.reduce((s,t)=>s+(t.inkoop ?? t.verkoop / VERKOOP_FACTOR),0);
+  const grandVerk = stofVerkoop + confVerkoop + totToesVerkoop;
+  const grandInk = stofInkoopW + confInk + totToesInk;
   const showTotaal = hasValid && f?.prijsPerMeter;
 
   // Update or create totaal bar
@@ -2165,10 +2203,8 @@ function s3recalc() {
     rightBody.appendChild(totaalBar);
   }
   if (showTotaal) {
-    const btwBedrag = grandTotal / 1.21 * 0.21;
-    const exclBTW = grandTotal - btwBedrag;
     totaalBar.style.display = 'block';
-    totaalBar.innerHTML = `<div class="calc-totaal-label">Verkoopprijs incl. BTW</div><div class="calc-totaal-val">${fmtE(grandTotal)}</div><div class="calc-totaal-btw">Waarvan BTW 21%: ${fmtE(btwBedrag)} · Excl. BTW: ${fmtE(exclBTW)}</div>`;
+    totaalBar.innerHTML = totaalHtml(grandVerk, grandInk);
   } else {
     totaalBar.style.display = 'none';
   }
