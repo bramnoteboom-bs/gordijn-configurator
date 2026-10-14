@@ -1175,10 +1175,11 @@ const PLANNER_VESTIGING = { malestijn:'Malestijn', debruin:'de Bruin', demaat:'d
 // ══════════════════════════════════════════════════════════════════════════════
 const VERKOOP_FACTOR = 2.4;  // inkoop excl. BTW × 2.4 = verkoop incl. BTW
 const CONFECTIE_PRIJZEN = {
-  banen: { vitrage_overgordijn: { enkel_vlinder: { basis: 20.45, gevoerd: 32.38 }, wave: { basis: 26.60, gevoerd: 38.53 } }, verduisterend: { enkel_vlinder: { basis: 25.71, gevoerd: 37.64 }, wave: { basis: 31.85, gevoerd: 43.79 } }, velours: { enkel_vlinder: { basis: 22.50, gevoerd: 34.43 }, wave: { basis: 28.65, gevoerd: 40.59 } }, gordijnstof: { zeilringen: { basis: 34.01, gevoerd: 45.95 } } },
-  kamerhoog: { vitrage_overgordijn: { enkel_vlinder: { basis: 15.84, gevoerd: 24.35 }, wave: { basis: 19.00, gevoerd: 28.67 } }, verduisterend: { enkel_vlinder: { basis: 16.23, gevoerd: 24.73 }, wave: { basis: 23.59, gevoerd: 31.44 } }, velours: { enkel_vlinder: { basis: 17.42, gevoerd: 25.93 }, wave: { basis: 23.59, gevoerd: 31.44 } }, gordijnstof: { zeilringen: { basis: 24.31, gevoerd: 32.82 } } },
+  banen: { vitrage_overgordijn: { enkel_vlinder: { basis: 21.47, gevoerd: 33.99 }, wave: { basis: 27.93, gevoerd: 40.46 } }, verduisterend: { enkel_vlinder: { basis: 26.99, gevoerd: 39.32 }, wave: { basis: 33.44, gevoerd: 45.90 } }, velours: { enkel_vlinder: { basis: 23.63, gevoerd: 36.15 }, wave: { basis: 40.58, gevoerd: 42.62 } }, gordijnstof: { zeilringen: { basis: 35.71, gevoerd: 48.25 } } },
+  kamerhoog: { vitrage_overgordijn: { enkel_vlinder: { basis: 16.63, gevoerd: 25.56 }, wave: { basis: 19.95, gevoerd: 30.10 } }, verduisterend: { enkel_vlinder: { basis: 17.09, gevoerd: 25.96 }, wave: { basis: 24.76, gevoerd: 33.01 } }, velours: { enkel_vlinder: { basis: 18.29, gevoerd: 27.22 }, wave: { basis: 24.77, gevoerd: 33.01 } }, gordijnstof: { zeilringen: { basis: 25.52, gevoerd: 34.46 } } },
 };
-const TOESLAGEN_TARIEVEN = { band:{6:1.58,12:1.98,15:2.58}, zoom_11_15:3.56, zoom_16_25:5.02, zoom_26_35:5.96, retourplooi:4.21, triplooi:4.21, hoogte_3_4:6.49, hoogte_4_5:7.83, hoogte_5_6:9.23, hoofdje:8.90, runner:3.05, verzwAanzet:7.02, verzwLos:3.74, loodje:1.78, embrasse_recht_klein:13.84, embrasse_recht_groot:27.17, paneel:29.79, roede:12.27, span:13.49, aanzetBoven:8.90, aanzetOnder:8.90 };
+// Prijslijst atelier 2026 (excl. btw, inkoop). Verkoop = × VERKOOP_FACTOR.
+const TOESLAGEN_TARIEVEN = { band:{6:1.66,12:2.08,15:2.71}, zoom_11_15:3.74, zoom_16_25:5.271, zoom_26_35:6.258, retourplooi:4.4205, triplooi:4.4205, hoogte_3_4:6.8145, hoogte_4_5:8.2215, hoogte_5_6:9.6915, hoofdje:9.345, runner:3.2025, verzwAanzet:7.371, verzwLos:3.927, loodje:1.869, embrasse_recht_klein:14.532, embrasse_recht_groot:28.5285, paneel:31.2795, roede:13.15, span:14.45, aanzetBoven:9.345, aanzetOnder:9.345 };
 const MODEL_CONFECTIETYPE = { wave:'wave', plooi:'enkel_vlinder', ring:'zeilringen', paneel:'paneel', fronslin:'enkel_vlinder', lus:'enkel_vlinder', span:'span', roede:'roede', embrasse:'embrasse', coupage:'enkel_vlinder', vouw:'vouw' };
 const FABRIC_CONFECTIE_STOFTYPE = { overgordijn:'vitrage_overgordijn', vitrage:'vitrage_overgordijn', verduisterend:'verduisterend', velours:'velours', rol:null, voering:null };
 const HC_DEFAULTS = { bovenzoomHoogte:10, bovenzoomType:'plooiband', onderzoomType:'enkel', onderzoomHoogte:15, gewichtjesZijzoom:true, strijken:true };
@@ -1235,22 +1236,22 @@ const PLOOI_DEFAULTS = { enkel: 170, vlinder: 220, tri: 250, geen: 100 };
 // ── VOUWGORDIJN PRIJZEN (inkoop excl. BTW, × 2.4 = verkoop incl. BTW) ──
 
 const VOUW_PRIJZEN = {
-  confectie_per_m2: 89.35,       // incl. baleinen, onderlat, kunststof ketting
+  confectie_per_m2: 93.81,       // incl. baleinen, onderlat, kunststof ketting
   confectie_minimum: 159.00,     // minimumprijs per vouwgordijn
   voeren_toeslag_pct: 0.50,      // +50% op confectieprijs
-  verticale_naad: 9.93,          // per naad
-  volant_bovenzijde: 16.83,      // per stuk
-  zijgeleiding_set: 34.59,       // per set
-  metalen_ketting: 4.18,         // per stuk
+  verticale_naad: 10.42,          // per naad
+  volant_bovenzijde: 17.67,      // per stuk
+  zijgeleiding_set: 36.31,       // per set
+  metalen_ketting: 4.38,         // per stuk
   losse_sleuven_pct: 0.125,      // +12,5% op confectieprijs
   // Motorisering
-  somfy_motor: 174.13,           // incl. inbouw
-  batterijpakket: 74.79,
-  oplader: 16.95,
-  afstandsbed_1: 63.11,          // Situo 1-kanaals
-  afstandsbed_5: 74.79,          // Situo 5-kanaals
-  afstandsbed_16: 192.82,        // Telis 16-kanaals
-  transformator: 51.42,          // 230v / 12v
+  somfy_motor: 182.83,           // incl. inbouw
+  batterijpakket: 78.52,
+  oplader: 17.79,
+  afstandsbed_1: 66.26,          // Situo 1-kanaals
+  afstandsbed_5: 78.52,          // Situo 5-kanaals
+  afstandsbed_16: 202.46,        // Telis 16-kanaals
+  transformator: 53.99,          // 230v / 12v
 };
 // ══════════════════════════════════════════════════════════════════════════════
 // ALL REMAINING BUSINESS LOGIC — injected from original without modification
