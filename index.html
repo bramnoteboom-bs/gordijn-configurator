@@ -511,6 +511,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
   <div class="topbar-right">
     <div class="topbar-summary" id="topbarSummary"></div>
     <div id="topbarSession" style="display:none;padding:4px 12px;border-radius:12px;background:rgba(90,122,95,0.12);font-size:11px;font-weight:500;color:#4a6b4f;white-space:nowrap"></div>
+    <button onclick="openVermaak()" title="Vermaakwerk aanmelden bij het atelier" style="background:var(--brown);color:#fff;border:none;border-radius:16px;cursor:pointer;padding:6px 14px;font-size:11px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;white-space:nowrap">Vermaakwerk</button>
     <button onclick="openSettings()" style="background:none;border:none;cursor:pointer;padding:4px;opacity:0.8;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8" title="Instellingen">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" stroke="#a8998f" stroke-width="1.4"/><path d="M16.2 12.2a1.4 1.4 0 00.28 1.54l.05.05a1.7 1.7 0 11-2.4 2.4l-.06-.05a1.4 1.4 0 00-2.37 1v.17a1.7 1.7 0 01-3.4 0v-.09A1.4 1.4 0 007 16.2l-.05.05a1.7 1.7 0 11-2.4-2.4l.05-.06a1.4 1.4 0 00-1-2.37H3.4a1.7 1.7 0 010-3.4h.09A1.4 1.4 0 004.5 7l-.05-.05a1.7 1.7 0 112.4-2.4l.06.05A1.4 1.4 0 008.3 3.6V3.4a1.7 1.7 0 013.4 0v.09a1.4 1.4 0 001.54.28l.05-.05a1.7 1.7 0 012.4 2.4l-.05.06a1.4 1.4 0 00.28 1.54h.17a1.7 1.7 0 010 3.4h-.09z" stroke="#a8998f" stroke-width="1.2"/></svg>
     </button>
@@ -883,6 +884,52 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
   </div>
 </div>
 <!-- Settings Modal -->
+<div class="modal-overlay" id="vermaakOverlay" style="z-index:550">
+  <div class="stof-modal" style="max-width:620px;max-height:92vh;overflow-y:auto">
+    <div class="stof-modal-header">
+      <div class="stof-modal-title">Vermaakwerk aanmelden</div>
+      <button class="stof-modal-close" onclick="closeVermaak()">✕</button>
+    </div>
+    <div style="padding:24px">
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:18px">Voor het vermaken van een eerder bestelde gordijn. Alle velden met * zijn verplicht. Het atelier ontvangt een werkbon.</div>
+      <div class="form-row cols-2" style="margin-bottom:16px">
+        <div class="field"><div class="field-sublabel">Vestiging *</div>
+          <select class="custom-select" id="vmVestiging">
+            <option value="">— Kies vestiging —</option>
+            <option value="malestijn">Binnenspecialist Van Malestijn</option>
+            <option value="debruin">Binnenspecialist De Bruin</option>
+            <option value="demaat">Binnenspecialist De Maat</option>
+            <option value="denheijer">Binnenspecialist Den Heijer</option>
+            <option value="vandergoes">Binnenspecialist Van der Goes</option>
+            <option value="schuijt">Binnenspecialist Schuijt</option>
+            <option value="hazelbag">Binnenspecialist Hazelbag</option>
+          </select></div>
+        <div class="field"><div class="field-sublabel">Commissienaam / ordernummer *</div>
+          <input type="text" class="custom-input" id="vmCommissie" placeholder="bijv. Familie De Vries / 12345"></div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--brown-text);text-transform:uppercase;letter-spacing:0.8px;margin:6px 0 8px">Destijds besteld (klaarmaakmaat)</div>
+      <div class="form-row cols-2" style="margin-bottom:16px">
+        <div class="field"><div class="field-sublabel">Breedte (cm) *</div><div class="input-wrap"><input type="number" class="custom-input has-unit" id="vmOudBreedte" min="1" step="0.5"><span class="input-unit">cm</span></div></div>
+        <div class="field"><div class="field-sublabel">Hoogte (cm) *</div><div class="input-wrap"><input type="number" class="custom-input has-unit" id="vmOudHoogte" min="1" step="0.5"><span class="input-unit">cm</span></div></div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--brown-text);text-transform:uppercase;letter-spacing:0.8px;margin:6px 0 8px">Nieuwe maat</div>
+      <div class="form-row cols-2" style="margin-bottom:16px">
+        <div class="field"><div class="field-sublabel">Nieuwe breedte (cm) *</div><div class="input-wrap"><input type="number" class="custom-input has-unit" id="vmNieuwBreedte" min="1" step="0.5"><span class="input-unit">cm</span></div></div>
+        <div class="field"><div class="field-sublabel">Nieuwe hoogte (cm) *</div><div class="input-wrap"><input type="number" class="custom-input has-unit" id="vmNieuwHoogte" min="1" step="0.5"><span class="input-unit">cm</span></div></div>
+      </div>
+      <div class="field" style="margin-bottom:16px"><div class="field-sublabel">Omschrijving vermaakwerk (optioneel)</div>
+        <textarea class="custom-input" id="vmOmschrijving" rows="3" style="width:100%;padding:8px 10px" placeholder="Bijv. 2 gordijnen inkorten en opnieuw plooien"></textarea></div>
+      <div class="field" style="margin-bottom:8px"><div class="field-sublabel">Wanneer kan het opgehaald worden? *</div>
+        <textarea class="custom-input" id="vmOphalen" rows="3" style="width:100%;padding:8px 10px" placeholder="Bijv. Woensdag of donderdag, na 10:00 uur. Contact: ..."></textarea></div>
+      <div id="vmFout" style="display:none;margin:10px 0;padding:10px 12px;border-radius:8px;background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.3);color:#C0392B;font-size:12px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+        <button class="ocm-btn-new" style="background:var(--surface);color:var(--text);border:1.5px solid var(--border)" onclick="closeVermaak()">Annuleren</button>
+        <button class="ocm-btn-new" id="vmSubmit" style="background:var(--brown)" onclick="submitVermaak()">Werkbon aanmaken en versturen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="settingsOverlay" style="z-index:600">
   <div class="stof-modal" style="max-width:640px;max-height:90vh;overflow-y:auto">
     <div class="stof-modal-header">
@@ -1192,9 +1239,7 @@ const EXTRA_TOESLAGEN = [
   { key:'hoekOnder',    label:'Hoek eruit onderkant',              tarief:27.1215, eenheid:'per stuk',  models:['plooi','wave','ring'] },
   { key:'inleg',        label:'Kunststof inleg 40 mm zeilringen',  tarief:0.9975,  eenheid:'per stuk',  models:['ring'] },
   { key:'voorloper',    label:'Wave voorloper/eindhaak universeel',tarief:3.5595,  eenheid:'per stuk',  models:['wave'] },
-  { key:'bies',         label:'Biesafwerking',                     tarief:18.9315, eenheid:'per meter', step:0.5, models:['plooi','wave','ring','span','roede','paneel'] },
-  { key:'vermaakStart', label:'Starttarief vermaakwerk',           tarief:19.4775, eenheid:'per keer',  modus:'vast', models:['plooi','wave','ring','span','roede','paneel'] },
-  { key:'vermaakUur',   label:'Vermaakwerk en afwijkende opdrachten', tarief:76.5765, eenheid:'per uur (per kwartier)', step:0.25, models:['plooi','wave','ring','span','roede','paneel'] }
+  { key:'bies',         label:'Biesafwerking',                     tarief:18.9315, eenheid:'per meter', step:0.5, models:['plooi','wave','ring','span','roede','paneel'] }
 ];
 function extraIsKamerhoog(c){ return c ? !!c.isHoogtestof : getEffectiveWidthtype()==='hoogte'; }
 function extraBeschikbaar(d,c){ return !(d.alleen==='banen' && extraIsKamerhoog(c)); }
@@ -3141,6 +3186,72 @@ const M365_JSON_SCHEMA = {
     "orderBevestigingFilename": {"type": "string"}
   }
 };
+
+// ══ VERMAAKWERK (los traject, geen stofselectie) ══
+function openVermaak(){ document.getElementById('vermaakOverlay').classList.add('open'); document.getElementById('vmFout').style.display='none'; }
+function closeVermaak(){ document.getElementById('vermaakOverlay').classList.remove('open'); }
+function vermaakLees(){
+  const g=id=>(document.getElementById(id)?.value||'').trim(); const n=id=>parseFloat(String(g(id)).replace(',','.'));
+  return { vestiging:g('vmVestiging'), commissie:g('vmCommissie'), oudB:n('vmOudBreedte'), oudH:n('vmOudHoogte'), nieuwB:n('vmNieuwBreedte'), nieuwH:n('vmNieuwHoogte'), omschrijving:g('vmOmschrijving'), ophalen:g('vmOphalen') };
+}
+function vermaakValideer(v){
+  const f=[]; if(!v.vestiging)f.push('vestiging'); if(!v.commissie)f.push('commissienaam / ordernummer');
+  if(!(v.oudB>0))f.push('destijds bestelde breedte'); if(!(v.oudH>0))f.push('destijds bestelde hoogte');
+  if(!(v.nieuwB>0))f.push('nieuwe breedte'); if(!(v.nieuwH>0))f.push('nieuwe hoogte'); if(!v.ophalen)f.push('wanneer het opgehaald kan worden');
+  return f;
+}
+function generateVermaakBonPDF(o){
+  const { jsPDF } = window.jspdf; const doc=new jsPDF({unit:'mm',format:'a5'}); const lm=12; let y=14;
+  const dark=[26,22,20], mid=[100,90,82];
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...dark); doc.text('Werkbon atelier — Vermaakwerk',lm,y); y+=8;
+  function row(l,v){ if(v===undefined||v===null||v==='')return; if(y>192){doc.addPage();y=14;} doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...mid); doc.text(l,lm,y); doc.setTextColor(...dark); const lines=doc.splitTextToSize(String(v),136-(lm+52)); doc.text(lines,lm+52,y); y+=5*lines.length; }
+  function divider(){ y+=1; doc.setDrawColor(210,200,190); doc.setLineWidth(0.2); doc.line(lm,y,136,y); y+=3; }
+  row('Bedrijfsnaam:',`Binnenspecialist ${o.vestiging}`); row('Email:',o.vestigingKey+'@binnenspecialist.nl');
+  row('Commissie / ordernr:',o.commissie); row('Datum aanmelding:',new Date(o.datum).toLocaleDateString('nl-NL'));
+  divider();
+  row('Destijds besteld:',`${o.vermaak.oudBreedte} × ${o.vermaak.oudHoogte} cm (b × h)`);
+  row('Nieuwe maat:',`${o.vermaak.nieuwBreedte} × ${o.vermaak.nieuwHoogte} cm (b × h)`);
+  const dB=+(o.vermaak.nieuwBreedte-o.vermaak.oudBreedte).toFixed(1), dH=+(o.vermaak.nieuwHoogte-o.vermaak.oudHoogte).toFixed(1);
+  row('Verschil:',`breedte ${dB>0?'+':''}${dB} cm · hoogte ${dH>0?'+':''}${dH} cm`);
+  divider();
+  row('Omschrijving:',o.vermaak.omschrijving||'—');
+  row('Ophalen:',o.vermaak.ophalen);
+  return doc;
+}
+async function submitVermaak(){
+  const v=vermaakLees(); const missend=vermaakValideer(v); const fout=document.getElementById('vmFout');
+  if(missend.length){ fout.style.display='block'; fout.textContent='Vul eerst in: '+missend.join(', ')+'.'; return; }
+  fout.style.display='none';
+  const btn=document.getElementById('vmSubmit'); btn.disabled=true; btn.textContent='Bezig…';
+  try{
+    let w=0; while(!window.jspdf && w<30){ await new Promise(r=>setTimeout(r,100)); w++; }
+    if(!window.jspdf) throw new Error('PDF-bibliotheek niet geladen');
+    const vestKort=PLANNER_VESTIGING[v.vestiging]||v.vestiging; const datumIso=new Date().toISOString();
+    const o={ orderNr:'VM-'+datumIso.slice(2,10).replace(/-/g,'')+'-'+Math.floor(1000+Math.random()*9000), datum:datumIso, medewerker:APP.medewerker||'',
+      vestiging:VESTIGING_LABELS[v.vestiging]||v.vestiging, vestigingKey:v.vestiging, vestigingKort:vestKort, commissie:v.commissie, ruimte:'Vermaakwerk',
+      bonNr:1, bonTotaal:1, plannerTitle:`${vestKort} - ${v.commissie} - VERMAAK`,
+      vermaak:{ oudBreedte:v.oudB, oudHoogte:v.oudH, nieuwBreedte:v.nieuwB, nieuwHoogte:v.nieuwH, omschrijving:v.omschrijving, ophalen:v.ophalen } };
+    o.plannerNotities=['VERMAAKWERK',`Destijds besteld: ${v.oudB} × ${v.oudH} cm (b × h)`,`Nieuwe maat: ${v.nieuwB} × ${v.nieuwH} cm (b × h)`, v.omschrijving?`Omschrijving: ${v.omschrijving.replace(/\s+/g,' ')}`:'', `Ophalen: ${v.ophalen.replace(/\s+/g,' ')}`].filter(Boolean).join('\n');
+    const pdf=generateVermaakBonPDF(o); const b64=pdf.output('datauristring').split(',')[1];
+    const fname=`Werkbon_Vermaak_${vestKort}_${v.commissie.replace(/[^A-Za-z0-9]+/g,'')}.pdf`;
+    pdf.save(fname);
+    let status='lokaal';
+    if(M365_CONFIG.M365_ENABLED && M365_CONFIG.POWER_AUTOMATE_WEBHOOK){
+      const payload={ orderNr:o.orderNr, datum:o.datum, medewerker:o.medewerker, vestiging:o.vestiging, vestigingKort:o.vestigingKort, commissie:o.commissie, ruimte:o.ruimte, bonNr:1, bonTotaal:1,
+        plannerTitle:o.plannerTitle, plannerNotities:o.plannerNotities,
+        stof:{naam:'Vermaakwerk',artikelnr:'',leverancier:'',prijsPerMeter:0,kleur:''}, model:{naam:'Vermaakwerk',id:'vermaak',factor:0},
+        maten:{breedte:v.nieuwB,hoogte:v.nieuwH,knipmaat:0,banen:0,totaalM:0}, verdeling:'', gekanteld:false,
+        prijzen:{stofVerkoop:0,voeringVerkoop:0,confVerkoop:0,toesVerkoop:0,totaalExBTW:0,btw:0,totaalInclBTW:0},
+        memo:`Ophalen: ${v.ophalen}`, vermaak:o.vermaak, confectieBonPdf:b64, confectieBonFilename:fname, orderBevestigingPdf:b64, orderBevestigingFilename:fname };
+      const resp=await fetch(M365_CONFIG.POWER_AUTOMATE_WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      status='atelier';
+    }
+    closeVermaak(); ['vmCommissie','vmOudBreedte','vmOudHoogte','vmNieuwBreedte','vmNieuwHoogte','vmOmschrijving','vmOphalen'].forEach(id=>{const e=document.getElementById(id); if(e)e.value='';});
+    showToast(status==='atelier'?'✓ Vermaakwerk verstuurd naar het atelier (werkbon gedownload)':'✓ Werkbon vermaakwerk gedownload (koppeling niet actief)');
+  }catch(e){ console.error('Vermaakwerk fout:',e); fout.style.display='block'; fout.textContent='Versturen mislukt: '+e.message+'. De werkbon is mogelijk wel gedownload; meld het vermaakwerk dan handmatig bij het atelier.'; }
+  finally{ btn.disabled=false; btn.textContent='Werkbon aanmaken en versturen'; }
+}
 
 function openSettings() {
   document.getElementById('settingsOverlay').classList.add('open');
