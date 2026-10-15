@@ -592,6 +592,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
             <div class="sel-meta" id="s1BannerMeta">—</div>
           </div>
         </div>
+        <div id="s1KleurWrap" style="display:none;margin-top:12px;padding:12px 14px;border:1.5px solid var(--terracotta);border-radius:10px;background:rgba(209,106,73,0.05)"><div class="field-sublabel" style="margin-bottom:6px;font-weight:600">Kleurnummer stof * <span style="font-weight:400;color:var(--text-dim)">(zelf invullen, zoals op het stalen/collectieboek)</span></div><input type="text" class="custom-input" id="s1KleurInput" placeholder="bijv. 12" style="max-width:240px" oninput="APP.stap1.kleurnr=this.value.trim()"></div>
       </div>
     </div>
 
@@ -617,6 +618,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-h
             <div class="detail-spec">Ophang: <strong id="detailOphang">—</strong></div>
           </div>
         </div>
+        <div id="schuinKeuze" style="display:none;margin-top:14px"></div>
       </div>
     </div>
 
@@ -1226,13 +1228,11 @@ const CONFECTIE_PRIJZEN = {
   kamerhoog: { vitrage_overgordijn: { enkel_vlinder: { basis: 16.63, gevoerd: 25.56 }, wave: { basis: 19.95, gevoerd: 30.10 } }, verduisterend: { enkel_vlinder: { basis: 17.09, gevoerd: 25.96 }, wave: { basis: 24.76, gevoerd: 33.01 } }, velours: { enkel_vlinder: { basis: 18.29, gevoerd: 27.22 }, wave: { basis: 24.77, gevoerd: 33.01 } }, gordijnstof: { zeilringen: { basis: 25.52, gevoerd: 34.46 } } },
 };
 // Prijslijst atelier 2026 (excl. btw, inkoop). Verkoop = × VERKOOP_FACTOR.
-const TOESLAGEN_TARIEVEN = { band:{6:1.66,12:2.08,15:2.71}, zoom_11_15:3.74, zoom_16_25:5.271, zoom_26_35:6.258, retourplooi:4.4205, triplooi:4.4205, hoogte_3_4:6.8145, hoogte_4_5:8.2215, hoogte_5_6:9.6915, hoofdje:9.345, runner:3.2025, verzwAanzet:7.371, verzwLos:3.927, loodje:1.869, embrasse_recht_klein:14.532, embrasse_recht_groot:28.5285, embrasse_banaan_klein:22.218, embrasse_banaan_groot:36.204, paneel:31.2795, roede:13.15, span:14.45, aanzetBoven:9.345, aanzetOnder:9.345 };
+const TOESLAGEN_TARIEVEN = { band:{6:1.66,12:2.08,15:2.71}, zoom_11_15:3.74, zoom_16_25:5.271, zoom_26_35:6.258, retourplooi:4.4205, triplooi:4.4205, hoogte_3_4:6.8145, hoogte_4_5:8.2215, hoogte_5_6:9.6915, hoofdje:9.345, schuin:1.05, schuinVerstek:4.20, runner:3.2025, verzwAanzet:7.371, verzwLos:3.927, loodje:1.869, embrasse_recht_klein:14.532, embrasse_recht_groot:28.5285, embrasse_banaan_klein:22.218, embrasse_banaan_groot:36.204, paneel:31.2795, roede:13.15, span:14.45, aanzetBoven:9.345, aanzetOnder:9.345 };
 // Optionele extra toeslagen uit de prijslijst atelier 2026 (excl. btw). Kussenhoezen en bezorgkosten bewust niet automatisch (op aanvraag / door atelier).
 const EXTRA_TOESLAGEN = [
   { key:'avant',        label:'Avantplooi',                        tarief:4.4205,  eenheid:'per baan',  modus:'banen', models:['plooi'] },
   { key:'extraPlooi',   label:'Extra plooien (afstand korter dan 8 cm)', tarief:2.9505, eenheid:'per meter/baan', modus:'auto', models:['plooi'] },
-  { key:'schuin',       label:'Schuin gordijn (plooien schuin) — toeslag op confectie', tarief:1.05, eenheid:'105% op confectie', modus:'pct', models:['plooi','wave'] },
-  { key:'verstek',      label:'Plooien in verstek — toeslag op confectie', tarief:4.20, eenheid:'420% op confectie', modus:'pct', models:['plooi','wave'] },
   { key:'valsBoven',    label:'Valse bovenkant / hoofdje', tarief:9.345, eenheid:'per baan', modus:'banen', alleen:'banen', models:['plooi','wave','ring'] },
   { key:'valsOnder',    label:'Valse onderkant zoom', tarief:9.345, eenheid:'per baan', modus:'banen', alleen:'banen', models:['plooi','wave','ring'] },
   { key:'hoekBoven',    label:'Hoek eruit boven geplooid',         tarief:27.1215, eenheid:'per stuk',  models:['plooi','wave','ring'] },
@@ -1243,12 +1243,13 @@ const EXTRA_TOESLAGEN = [
 ];
 function extraIsKamerhoog(c){ return c ? !!c.isHoogtestof : getEffectiveWidthtype()==='hoogte'; }
 function extraBeschikbaar(d,c){ return !(d.alleen==='banen' && extraIsKamerhoog(c)); }
-function extraEenheid(d,c){ if(d.modus==='auto') return extraIsKamerhoog(c)?'per meter':'per baan'; return d.eenheid; }
-function extraAantal(def,c,st){ if(!st||!st.on) return 0; if(!extraBeschikbaar(def,c)) return 0; if(def.modus==='auto') return extraIsKamerhoog(c)?((c&&c.totaalM)||0):((c&&c.totaalBanen)||0); if(def.modus==='banen') return (c&&c.totaalBanen)||0; if(def.modus==='vast'||def.modus==='pct') return 1; return parseFloat(st.aantal)||0; }
+function extraEenheid(d,c){ if(d.modus==='auto'||d.modus==='banen') return extraIsKamerhoog(c)?'per meter':'per baan'; return d.eenheid; }
+function extraMeters(c){ return Math.max(0,((c&&c.totaalM)||0)-((c&&c.aanzetExtraM)||0)); }
+function extraAantal(def,c,st){ if(!st||!st.on) return 0; if(!extraBeschikbaar(def,c)) return 0; if(def.modus==='auto') return extraIsKamerhoog(c)?((c&&c.totaalM)||0):((c&&c.totaalBanen)||0); if(def.modus==='banen') return extraIsKamerhoog(c)?extraMeters(c):((c&&c.totaalBanen)||0); if(def.modus==='vast'||def.modus==='pct') return 1; return parseFloat(st.aantal)||0; }
 function setVermaakTekst(v){ APP.stap3.vermaakTekst=v; }
 function toggleExtra(key,on){ const ex=(APP.stap3.extras=APP.stap3.extras||{}); const d=EXTRA_TOESLAGEN.find(e=>e.key===key); ex[key]=Object.assign({aantal:(d&&(d.modus==='banen'||d.modus==='vast'))?1:1},ex[key]||{},{on:!!on}); const w=document.getElementById('extraQty_'+key); if(w) w.style.display=on?'inline-flex':'none'; if(key==='vermaakStart'||key==='vermaakUur'){ const e2=APP.stap3.extras; const any=(e2.vermaakStart&&e2.vermaakStart.on)||(e2.vermaakUur&&e2.vermaakUur.on); const vw=document.getElementById('vermaakTekstWrap'); if(vw) vw.style.display=any?'block':'none'; } if(key==='avant')syncPlooiFactor(); else s3recalc(); }
 function setExtraAantal(key,v){ const ex=(APP.stap3.extras=APP.stap3.extras||{}); ex[key]=Object.assign({on:true},ex[key]||{},{aantal:parseFloat(v)||0}); s3recalc(); }
-function extrasRows(s3,c){ const out=[]; EXTRA_TOESLAGEN.forEach(d=>{ const st=(s3.extras||{})[d.key]; const n=extraAantal(d,c,st); if(n>0) out.push([d.label.split(' — ')[0]+':', (d.modus==='vast'||d.modus==='pct')?'Ja':`${(+n.toFixed(2))} ${extraEenheid(d,c).replace('per ','').replace('baan',n===1?'baan':'banen').replace('meter/banen','meter')}`]); }); if(s3.vermaakTekst&&String(s3.vermaakTekst).trim()&&(((s3.extras||{}).vermaakStart||{}).on||((s3.extras||{}).vermaakUur||{}).on)) out.push(['Vermaakwerk omschrijving:', String(s3.vermaakTekst).trim().replace(/\s+/g,' ')]); return out; }
+function extrasRows(s3,c){ const out=[]; EXTRA_TOESLAGEN.forEach(d=>{ const st=(s3.extras||{})[d.key]; const n=extraAantal(d,c,st); if(n<=0 && st && st.on && extraBeschikbaar(d,c)) out.push([d.label.split(' — ')[0]+':', 'Ja']); else if(n>0) out.push([d.label.split(' — ')[0]+':', (d.modus==='vast'||d.modus==='pct')?'Ja':`${(+n.toFixed(2))} ${extraEenheid(d,c).replace('per ','').replace('baan',n===1?'baan':'banen').replace('meter/banen','meter')}`]); }); if(s3.vermaakTekst&&String(s3.vermaakTekst).trim()&&(((s3.extras||{}).vermaakStart||{}).on||((s3.extras||{}).vermaakUur||{}).on)) out.push(['Vermaakwerk omschrijving:', String(s3.vermaakTekst).trim().replace(/\s+/g,' ')]); return out; }
 const MODEL_CONFECTIETYPE = { wave:'wave', plooi:'enkel_vlinder', ring:'zeilringen', paneel:'paneel', fronslin:'enkel_vlinder', lus:'enkel_vlinder', span:'span', roede:'roede', embrasse:'embrasse', coupage:'enkel_vlinder', vouw:'vouw' };
 const FABRIC_CONFECTIE_STOFTYPE = { overgordijn:'vitrage_overgordijn', vitrage:'vitrage_overgordijn', verduisterend:'verduisterend', velours:'velours', rol:null, voering:null };
 const HC_DEFAULTS = { bovenzoomHoogte:10, bovenzoomType:'plooiband', onderzoomType:'enkel', onderzoomHoogte:15, gewichtjesZijzoom:true, strijken:true };
@@ -1391,7 +1392,10 @@ function setPill(el, filter) {
 }
 
 function selectFabric(id) {
+  const prevF = APP.stap1.fabric;
   APP.stap1.fabric = FABRICS.find(f => f.id === id);
+  if (!prevF || prevF.id !== id) APP.stap1.kleurnr = '';
+  { const kw=document.getElementById('s1KleurWrap'); if(kw) kw.style.display='block'; const ki=document.getElementById('s1KleurInput'); if(ki) ki.value=APP.stap1.kleurnr||''; }
   filterFabrics();
   const b = document.getElementById('s1Banner');
   const f = APP.stap1.fabric;
@@ -1451,7 +1455,9 @@ function selectModel(id) {
   document.getElementById('detailFactor').textContent = factorDisplay;
   document.getElementById('detailRol').textContent = m.rolbreedte;
   document.getElementById('detailOphang').textContent = m.ophang;
+  if (m.id!=='plooi' && m.id!=='wave' && APP.stap3.schuin) APP.stap3.schuin.actief=false;
   buildStap3();
+  renderSchuinKeuze();
   updateRightPanel();
 }
 
@@ -1492,7 +1498,7 @@ function buildStap3() {
     container.appendChild(buildExtrasAcc(2));
   } else {
     container.appendChild(isVouw ? buildVouwMatenAcc() : buildMatenAcc());
-    if (!isVouw) container.appendChild(buildVerdelingAcc());
+    if (!isVouw && !schuinActief()) container.appendChild(buildVerdelingAcc());
     container.appendChild(buildTypeAcc(model, config));
     if (!isVouw) container.appendChild(buildZoomenAcc());
     container.appendChild(buildExtrasAcc());
@@ -1500,6 +1506,7 @@ function buildStap3() {
   }
   if (isVouw && !APP.stap3.verdeling) APP.stap3.verdeling = 'links';
 
+  container.querySelectorAll('.acc-num').forEach((n,i)=>{ n.textContent=i+1; });
   // Herstel accordion open/dicht status
   const newAccs = container.querySelectorAll('.accordion');
   newAccs.forEach((acc, i) => {
@@ -1639,7 +1646,7 @@ function buildMatenAcc() {
 
   _plooiRowHtml = plooiRow;
   const isPlooiModel = model?.id === 'plooi';
-  return makeAcc(1,'Maten','Afmetingen en plooipercentage',`<div class="field-group">${widthtypeBanner}${kantelenToggle}${aanzetToggle}${matenRij}</div>${isPlooiModel?'':plooiRow}`,true);
+  return makeAcc(1,'Maten',schuinActief()?'Schuin gordijn: lengtes A t/m E':'Afmetingen en plooipercentage',`<div class="field-group">${widthtypeBanner}${kantelenToggle}${aanzetToggle}${schuinActief()?buildSchuinForm():matenRij}</div>${isPlooiModel?'':plooiRow}`,true);
 }
 
 function buildVerdelingAcc() {
@@ -1752,7 +1759,7 @@ function buildExtraToeslagenHTML() {
   const defs=EXTRA_TOESLAGEN.filter(d=>d.models.includes(model.id)&&extraBeschikbaar(d,null)); if(!defs.length) return '';
   const rows=defs.map(d=>{
     const st=(APP.stap3.extras||{})[d.key]||{}; const prijs=(d.tarief*VERKOOP_FACTOR).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const qty=(d.modus==='banen')?`<span style="font-size:11px;color:var(--text-dim)">aantal = banen</span>`:(d.modus==='auto')?`<span style="font-size:11px;color:var(--text-dim)">aantal = ${extraIsKamerhoog(null)?'strekkende meters':'banen'}</span>`:(d.modus==='vast'||d.modus==='pct')?'':`<span id="extraQty_${d.key}" style="display:${st.on?'inline-flex':'none'};align-items:center;gap:6px"><input type="number" class="custom-input" style="width:72px;padding:6px 8px" min="0" step="${d.step||1}" value="${st.aantal||1}" oninput="setExtraAantal('${d.key}',this.value)"><span style="font-size:11px;color:var(--text-dim)">${d.eenheid.replace('per ','')}</span></span>`;
+    const qty=(d.modus==='banen')?`<span style="font-size:11px;color:var(--text-dim)">aantal = ${extraIsKamerhoog(null)?'strekkende meters':'banen'}</span>`:(d.modus==='auto')?`<span style="font-size:11px;color:var(--text-dim)">aantal = ${extraIsKamerhoog(null)?'strekkende meters':'banen'}</span>`:(d.modus==='vast'||d.modus==='pct')?'':`<span id="extraQty_${d.key}" style="display:${st.on?'inline-flex':'none'};align-items:center;gap:6px"><input type="number" class="custom-input" style="width:72px;padding:6px 8px" min="0" step="${d.step||1}" value="${st.aantal||1}" oninput="setExtraAantal('${d.key}',this.value)"><span style="font-size:11px;color:var(--text-dim)">${d.eenheid.replace('per ','')}</span></span>`;
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-light);flex-wrap:wrap"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--text)"><input type="checkbox" ${st.on?'checked':''} onchange="toggleExtra('${d.key}',this.checked)" style="accent-color:var(--brown);width:14px;height:14px"> ${d.label}</label><span style="display:flex;align-items:center;gap:12px"><span style="font-size:11px;color:var(--text-mid)">${d.modus==='pct'?d.eenheid:`€ ${prijs} ${extraEenheid(d,null)} incl. btw`}</span>${qty}</span></div>`;
   }).join('');
   const vOn=((APP.stap3.extras||{}).vermaakStart||{}).on||((APP.stap3.extras||{}).vermaakUur||{}).on;
@@ -1869,6 +1876,7 @@ function selectVoeringFabric(id) { APP.stap3.afwerking.voeringFabric=FABRICS.fin
 // ══════════════════════════════════════════════════════════════════════════════
 
 function s3calc() {
+  syncSchuin();
   const s3=APP.stap3; const model=APP.stap2?.model; const fabric=APP.stap1?.fabric;
   const config=MODEL_CONFIGS[model?.id]||MODEL_CONFIGS.wave; const modelFactor=config.factor;
   // Wave: plooifactor bewerkbaar (default: <200cm→2.4, ≥200cm→2.2). Anders: plooipercentage.
@@ -1885,7 +1893,7 @@ function s3calc() {
   const isHoogtestof=getEffectiveWidthtype()==='hoogte'; const stofbreedte=parseFloat(fabric?.stofmaat)||0; const rolbreedte=stofbreedte;
   const onderzoomH=s3.zoomen.onderzoomType==='geen'?0:(s3.zoomen.onderzoomType==='verzwaring_aanzetten'||s3.zoomen.onderzoomType==='verzwaring_fabriek')?5:(s3.zoomen.onderzoomHoogte||15);
   const bovenzoomH=s3.zoomen.bovenzoomHoogte||10; const uitvalBoven=s3.zoomen.uitvalBoven||0;
-  const extraVal=parseFloat(s3.typeSpecific?.extraVal)||0;
+  const extraVal=(parseFloat(s3.typeSpecific?.extraVal)||0)+schuinExtraHoogte(isHoogtestof);
   const isStel=verdeling==='gelijk'||verdeling==='ongelijk';
   const zijkantenExtra=(model?.id==='vouw')?(isStel?30:15):0; // atelier: factoren zijn incl. zijkanten; +15 cm alleen bij vouwgordijnen
   const isWaveModel=model?.id==='wave';
@@ -1947,7 +1955,8 @@ function berekenConfectie(c) { const model=APP.stap2?.model;const fabric=APP.sta
 
 function berekenToeslagen(c) { const model=APP.stap2?.model;const s3=APP.stap3;if(!model||!c)return[];const toeslagen=[];const isPlooi=model.id==='plooi';const isWave=model.id==='wave';const isHoogtestof=c.isHoogtestof;const banen=c.totaalBanen||0;const knipmaat=c.knipmaat||0;function toeslag(l,t,a,e){const i=t*a;toeslagen.push({label:l,tarief:t,eenheid:e,aantal:a,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(isPlooi&&!isHoogtestof){const bh=s3.zoomen.bovenzoomHoogte||10;const bt=TOESLAGEN_TARIEVEN.band[bh];if(bt)toeslag(`Band ${bh} cm`,bt,banen,'per baan');}if(!isHoogtestof&&(s3.zoomen.onderzoomType==='enkel'||s3.zoomen.onderzoomType==='dubbel')){const oh=s3.zoomen.onderzoomHoogte||15;if(oh>=11&&oh<16)toeslag('Onderzoom 11–15 cm',TOESLAGEN_TARIEVEN.zoom_11_15,banen,'per baan');else if(oh>=16&&oh<26)toeslag('Onderzoom 16–25 cm',TOESLAGEN_TARIEVEN.zoom_16_25,banen,'per baan');else if(oh>=26&&oh<36)toeslag('Onderzoom 26–35 cm',TOESLAGEN_TARIEVEN.zoom_26_35,banen,'per baan');}
   /* kamerhoog: zoomstaffel per strekkende meter (alleen bij gewone zoom, vanaf 11 cm) */
-  if(isHoogtestof&&(s3.zoomen.onderzoomType==='enkel'||s3.zoomen.onderzoomType==='dubbel')){const oh=s3.zoomen.onderzoomHoogte||15;const mz=Math.max(0,(c.totaalM||0)-(c.aanzetExtraM||0));if(mz>0){if(oh>=11&&oh<16)toeslag('Onderzoom 11–15 cm',TOESLAGEN_TARIEVEN.zoom_11_15,mz,'per meter');else if(oh>=16&&oh<26)toeslag('Onderzoom 16–25 cm',TOESLAGEN_TARIEVEN.zoom_16_25,mz,'per meter');else if(oh>=26&&oh<36)toeslag('Onderzoom 26–35 cm',TOESLAGEN_TARIEVEN.zoom_26_35,mz,'per meter');}}if(isPlooi&&s3.zoomen.retourplooi&&!isHoogtestof)toeslag('Retour/platte plooi',TOESLAGEN_TARIEVEN.retourplooi,banen,'per baan');if(isPlooi&&s3.typeSpecific?.plooitype==='tri'&&!isHoogtestof)toeslag('Triplooi',TOESLAGEN_TARIEVEN.triplooi,banen,'per baan');if(!isHoogtestof&&knipmaat>=300){if(knipmaat<400)toeslag('Hoogte 3–4 m',TOESLAGEN_TARIEVEN.hoogte_3_4,banen,'per baan');else if(knipmaat<500)toeslag('Hoogte 4–5 m',TOESLAGEN_TARIEVEN.hoogte_4_5,banen,'per baan');else if(knipmaat<600)toeslag('Hoogte 5–6 m',TOESLAGEN_TARIEVEN.hoogte_5_6,banen,'per baan');}if(c.isHoogtestof&&(s3.maten.aanzet==='boven'||s3.maten.aanzet==='onder')&&c.aanzetExtraM>0){const isBoven=s3.maten.aanzet==='boven';toeslag(isBoven?'Valse bovenkant / Hoogte':'Valse onderkant zoom',isBoven?TOESLAGEN_TARIEVEN.aanzetBoven:TOESLAGEN_TARIEVEN.aanzetOnder,c.aanzetExtraM,'per meter');}if(isWave&&s3.typeSpecific?.runners==='ja'){const confectiebreedteM=(c.breedte||0)/100;if(confectiebreedteM>0)toeslag('Wave runners',TOESLAGEN_TARIEVEN.runner,confectiebreedteM,'per meter');}if(!isHoogtestof){if(s3.zoomen.onderzoomType==='verzwaring_aanzetten')toeslag('Verzwaringskoord gefestonneerd',TOESLAGEN_TARIEVEN.verzwAanzet,banen,'per baan');else if(s3.zoomen.onderzoomType==='verzwaring_fabriek')toeslag('Verzwaringskoord los in zoom',TOESLAGEN_TARIEVEN.verzwLos,banen,'per baan');}else{ /* kamerhoog: koord zit vaak al in de stof van de fabrikant; meerprijs alleen als de optie is aangevinkt (per meter) */ const mv=Math.max(0,(c.totaalM||0)-(c.aanzetExtraM||0)); if(mv>0){ if(s3.zoomen.onderzoomType==='verzwaring_aanzetten')toeslag('Verzwaringskoord gefestonneerd',TOESLAGEN_TARIEVEN.verzwAanzet,mv,'per meter'); else if(s3.zoomen.onderzoomType==='verzwaring_fabriek')toeslag('Verzwaringskoord los in zoom',TOESLAGEN_TARIEVEN.verzwLos,mv,'per meter'); } }if(s3.zoomen.gewichtjesZijzoom&&!isHoogtestof&&banen>0){const isStel=c.verdeling==='gelijk'||c.verdeling==='ongelijk';toeslag('Loodjes zijzoom',TOESLAGEN_TARIEVEN.loodje,isStel?4:2,'per stuk');}if(model.id==='vouw'){const vT=s3.typeSpecific;if(vT?.vouwBediening==='metalen_ketting'){const i=VOUW_PRIJZEN.metalen_ketting;toeslagen.push({label:'Metalen ketting',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(vT?.vouwVolant==='ja'){const i=VOUW_PRIJZEN.volant_bovenzijde;toeslagen.push({label:'Volant bovenzijde',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(vT?.vouwZijgeleiding==='ja'){const i=VOUW_PRIJZEN.zijgeleiding_set;toeslagen.push({label:'Zijgeleiding (set)',tarief:i,eenheid:'per set',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}const fabric=APP.stap1?.fabric;const isBanenstof=getEffectiveWidthtype()!=='hoogte';const stofbr=parseFloat(fabric?.stofmaat)||0;if(isBanenstof&&stofbr>0){const raambreedte=parseFloat(s3.maten.breedte)||0;const aantalBanen=Math.ceil(raambreedte/stofbr);const naden=aantalBanen>1?aantalBanen-1:0;if(naden>0){const i=VOUW_PRIJZEN.verticale_naad*naden;toeslagen.push({label:`Verticale naden (${naden}×, stofbreedte ${stofbr} cm)`,tarief:VOUW_PRIJZEN.verticale_naad,eenheid:'per naad',aantal:naden,inkoop:i,verkoop:i*VERKOOP_FACTOR});}}if(vT?.vouwBediening==='gemotoriseerd'){const motorItems=[{label:'Somfy motor incl. inbouw',tarief:VOUW_PRIJZEN.somfy_motor}];motorItems.forEach(mi=>{toeslagen.push({label:mi.label,tarief:mi.tarief,eenheid:'per stuk',aantal:1,inkoop:mi.tarief,verkoop:mi.tarief*VERKOOP_FACTOR});});if(vT?.vouwMotorBatterij){const i=VOUW_PRIJZEN.batterijpakket;toeslagen.push({label:'Batterijpakket li-ion',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(vT?.vouwMotorOplader){const i=VOUW_PRIJZEN.oplader;toeslagen.push({label:'Oplader batterijpakket',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}const ab=vT?.vouwMotorAfstandsbed;if(ab==='1'){toeslagen.push({label:'Situo 1-kanaals',tarief:VOUW_PRIJZEN.afstandsbed_1,eenheid:'per stuk',aantal:1,inkoop:VOUW_PRIJZEN.afstandsbed_1,verkoop:VOUW_PRIJZEN.afstandsbed_1*VERKOOP_FACTOR});}else if(ab==='5'){toeslagen.push({label:'Situo 5-kanaals',tarief:VOUW_PRIJZEN.afstandsbed_5,eenheid:'per stuk',aantal:1,inkoop:VOUW_PRIJZEN.afstandsbed_5,verkoop:VOUW_PRIJZEN.afstandsbed_5*VERKOOP_FACTOR});}else if(ab==='16'){toeslagen.push({label:'Telis 16-kanaals',tarief:VOUW_PRIJZEN.afstandsbed_16,eenheid:'per stuk',aantal:1,inkoop:VOUW_PRIJZEN.afstandsbed_16,verkoop:VOUW_PRIJZEN.afstandsbed_16*VERKOOP_FACTOR});}if(vT?.vouwMotorTrafo){const i=VOUW_PRIJZEN.transformator;toeslagen.push({label:'Transformator 230v/12v',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}}}if(model.id!=='vouw'&&model.id!=='embrasse'){EXTRA_TOESLAGEN.forEach(d=>{ if(!d.models.includes(model.id)) return; const n=extraAantal(d,c,(s3.extras||{})[d.key]); if(n<=0) return; if(d.modus==='pct'){ const cf=berekenConfectie(c); const i=((cf&&cf.inkoop)||0)*d.tarief; toeslagen.push({label:d.label.split(' — ')[0]+' ('+d.eenheid+')',tarief:d.tarief,eenheid:d.eenheid,aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR}); } else toeslag(d.label,d.tarief,n,extraEenheid(d,c)); });}
+  if(isHoogtestof&&(s3.zoomen.onderzoomType==='enkel'||s3.zoomen.onderzoomType==='dubbel')){const oh=s3.zoomen.onderzoomHoogte||15;const mz=Math.max(0,(c.totaalM||0)-(c.aanzetExtraM||0));if(mz>0){if(oh>=11&&oh<16)toeslag('Onderzoom 11–15 cm',TOESLAGEN_TARIEVEN.zoom_11_15,mz,'per meter');else if(oh>=16&&oh<26)toeslag('Onderzoom 16–25 cm',TOESLAGEN_TARIEVEN.zoom_16_25,mz,'per meter');else if(oh>=26&&oh<36)toeslag('Onderzoom 26–35 cm',TOESLAGEN_TARIEVEN.zoom_26_35,mz,'per meter');}}if(isPlooi&&s3.zoomen.retourplooi)toeslag('Retour/platte plooi',TOESLAGEN_TARIEVEN.retourplooi,isHoogtestof?extraMeters(c):banen,isHoogtestof?'per meter':'per baan');if(isPlooi&&s3.typeSpecific?.plooitype==='tri')toeslag('Triplooi',TOESLAGEN_TARIEVEN.triplooi,isHoogtestof?extraMeters(c):banen,isHoogtestof?'per meter':'per baan');if(!isHoogtestof&&knipmaat>=300){if(knipmaat<400)toeslag('Hoogte 3–4 m',TOESLAGEN_TARIEVEN.hoogte_3_4,banen,'per baan');else if(knipmaat<500)toeslag('Hoogte 4–5 m',TOESLAGEN_TARIEVEN.hoogte_4_5,banen,'per baan');else if(knipmaat<600)toeslag('Hoogte 5–6 m',TOESLAGEN_TARIEVEN.hoogte_5_6,banen,'per baan');}if(c.isHoogtestof&&(s3.maten.aanzet==='boven'||s3.maten.aanzet==='onder')&&c.aanzetExtraM>0){const isBoven=s3.maten.aanzet==='boven';toeslag(isBoven?'Valse bovenkant / Hoogte':'Valse onderkant zoom',isBoven?TOESLAGEN_TARIEVEN.aanzetBoven:TOESLAGEN_TARIEVEN.aanzetOnder,c.aanzetExtraM,'per meter');}if(isWave&&s3.typeSpecific?.runners==='ja'){const confectiebreedteM=(c.breedte||0)/100;if(confectiebreedteM>0)toeslag('Wave runners',TOESLAGEN_TARIEVEN.runner,confectiebreedteM,'per meter');}if(!isHoogtestof){if(s3.zoomen.onderzoomType==='verzwaring_aanzetten')toeslag('Verzwaringskoord gefestonneerd',TOESLAGEN_TARIEVEN.verzwAanzet,banen,'per baan');else if(s3.zoomen.onderzoomType==='verzwaring_fabriek')toeslag('Verzwaringskoord los in zoom',TOESLAGEN_TARIEVEN.verzwLos,banen,'per baan');}else{ /* kamerhoog: koord zit vaak al in de stof van de fabrikant; meerprijs alleen als de optie is aangevinkt (per meter) */ const mv=Math.max(0,(c.totaalM||0)-(c.aanzetExtraM||0)); if(mv>0){ if(s3.zoomen.onderzoomType==='verzwaring_aanzetten')toeslag('Verzwaringskoord gefestonneerd',TOESLAGEN_TARIEVEN.verzwAanzet,mv,'per meter'); else if(s3.zoomen.onderzoomType==='verzwaring_fabriek')toeslag('Verzwaringskoord los in zoom',TOESLAGEN_TARIEVEN.verzwLos,mv,'per meter'); } }if(s3.zoomen.gewichtjesZijzoom&&!isHoogtestof&&banen>0){const isStel=c.verdeling==='gelijk'||c.verdeling==='ongelijk';toeslag('Loodjes zijzoom',TOESLAGEN_TARIEVEN.loodje,isStel?4:2,'per stuk');}if(model.id==='vouw'){const vT=s3.typeSpecific;if(vT?.vouwBediening==='metalen_ketting'){const i=VOUW_PRIJZEN.metalen_ketting;toeslagen.push({label:'Metalen ketting',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(vT?.vouwVolant==='ja'){const i=VOUW_PRIJZEN.volant_bovenzijde;toeslagen.push({label:'Volant bovenzijde',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(vT?.vouwZijgeleiding==='ja'){const i=VOUW_PRIJZEN.zijgeleiding_set;toeslagen.push({label:'Zijgeleiding (set)',tarief:i,eenheid:'per set',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}const fabric=APP.stap1?.fabric;const isBanenstof=getEffectiveWidthtype()!=='hoogte';const stofbr=parseFloat(fabric?.stofmaat)||0;if(isBanenstof&&stofbr>0){const raambreedte=parseFloat(s3.maten.breedte)||0;const aantalBanen=Math.ceil(raambreedte/stofbr);const naden=aantalBanen>1?aantalBanen-1:0;if(naden>0){const i=VOUW_PRIJZEN.verticale_naad*naden;toeslagen.push({label:`Verticale naden (${naden}×, stofbreedte ${stofbr} cm)`,tarief:VOUW_PRIJZEN.verticale_naad,eenheid:'per naad',aantal:naden,inkoop:i,verkoop:i*VERKOOP_FACTOR});}}if(vT?.vouwBediening==='gemotoriseerd'){const motorItems=[{label:'Somfy motor incl. inbouw',tarief:VOUW_PRIJZEN.somfy_motor}];motorItems.forEach(mi=>{toeslagen.push({label:mi.label,tarief:mi.tarief,eenheid:'per stuk',aantal:1,inkoop:mi.tarief,verkoop:mi.tarief*VERKOOP_FACTOR});});if(vT?.vouwMotorBatterij){const i=VOUW_PRIJZEN.batterijpakket;toeslagen.push({label:'Batterijpakket li-ion',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}if(vT?.vouwMotorOplader){const i=VOUW_PRIJZEN.oplader;toeslagen.push({label:'Oplader batterijpakket',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}const ab=vT?.vouwMotorAfstandsbed;if(ab==='1'){toeslagen.push({label:'Situo 1-kanaals',tarief:VOUW_PRIJZEN.afstandsbed_1,eenheid:'per stuk',aantal:1,inkoop:VOUW_PRIJZEN.afstandsbed_1,verkoop:VOUW_PRIJZEN.afstandsbed_1*VERKOOP_FACTOR});}else if(ab==='5'){toeslagen.push({label:'Situo 5-kanaals',tarief:VOUW_PRIJZEN.afstandsbed_5,eenheid:'per stuk',aantal:1,inkoop:VOUW_PRIJZEN.afstandsbed_5,verkoop:VOUW_PRIJZEN.afstandsbed_5*VERKOOP_FACTOR});}else if(ab==='16'){toeslagen.push({label:'Telis 16-kanaals',tarief:VOUW_PRIJZEN.afstandsbed_16,eenheid:'per stuk',aantal:1,inkoop:VOUW_PRIJZEN.afstandsbed_16,verkoop:VOUW_PRIJZEN.afstandsbed_16*VERKOOP_FACTOR});}if(vT?.vouwMotorTrafo){const i=VOUW_PRIJZEN.transformator;toeslagen.push({label:'Transformator 230v/12v',tarief:i,eenheid:'per stuk',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR});}}}if(schuinActief()&&model.id==='plooi'){ const cf=berekenConfectie(c); const pct=schuinVerstek()?TOESLAGEN_TARIEVEN.schuinVerstek:TOESLAGEN_TARIEVEN.schuin; const i=((cf&&cf.inkoop)||0)*pct; toeslagen.push({label:schuinVerstek()?'Plooien in verstek (420% op confectie)':'Schuin gordijn, plooien schuin (105% op confectie)',tarief:pct,eenheid:'% op confectie',aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR}); }
+if(model.id!=='vouw'&&model.id!=='embrasse'){EXTRA_TOESLAGEN.forEach(d=>{ if(!d.models.includes(model.id)) return; const n=extraAantal(d,c,(s3.extras||{})[d.key]); if(n<=0) return; if(d.modus==='pct'){ const cf=berekenConfectie(c); const i=((cf&&cf.inkoop)||0)*d.tarief; toeslagen.push({label:d.label.split(' — ')[0]+' ('+d.eenheid+')',tarief:d.tarief,eenheid:d.eenheid,aantal:1,inkoop:i,verkoop:i*VERKOOP_FACTOR}); } else toeslag(d.label,d.tarief,n,extraEenheid(d,c)); });}
   return toeslagen; }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1959,6 +1968,13 @@ function validate() {
   const f = APP.stap1.fabric;
   const model = APP.stap2?.model;
   if (!f || !model) return { blokkades, waarschuwingen, hasBlocker: false };
+  if (schuinActief()) {
+    const scv=getSchuin(); const vv=SCHUIN_VARIANTEN[scv.variant]||SCHUIN_VARIANTEN['1'];
+    const mis=vv.velden.filter(l=>{ const raw=String(scv[l]===undefined||scv[l]===null?'':scv[l]).replace(',','.').trim(); const num=parseFloat(raw); return (l==='E'||l==='E2') ? !(raw!==''&&num>=0) : !(num>0); }); /* E en E2 mogen 0 zijn */
+    if (mis.length) blokkades.push('Schuin gordijn: vul de lengtes in voor '+mis.join(', ')+'.');
+    if (!(scv.vrijhangen||'').trim()) blokkades.push('Schuin gordijn: vul in hoeveel het gordijn vrij moet hangen (Vrijhangen).');
+    const pt=APP.stap3.typeSpecific?.plooitype; if (model.id==='plooi' && (pt==='tri'||pt==='geen')) blokkades.push('Schuin gordijn kan alleen met enkele plooi of vlinderplooi.');
+  }
 
   const breedte = parseFloat(APP.stap3.maten.breedte) || 0;
   const hoogte = parseFloat(APP.stap3.maten.hoogte) || 0;
@@ -1981,7 +1997,7 @@ function validate() {
       onderzoomH = APP.stap3.zoomen.onderzoomType === 'geen' ? 0 : (APP.stap3.zoomen.onderzoomType === 'verzwaring_aanzetten' || APP.stap3.zoomen.onderzoomType === 'verzwaring_fabriek') ? 5 : (APP.stap3.zoomen.onderzoomHoogte || 15);
       bovenzoomH = APP.stap3.zoomen.bovenzoomHoogte || 10;
       uitvalBoven = APP.stap3.zoomen.uitvalBoven || 0;
-      extraVal = parseFloat(APP.stap3.typeSpecific?.extraVal) || 0;
+      extraVal = (parseFloat(APP.stap3.typeSpecific?.extraVal) || 0) + schuinExtraHoogte(isHoogtestof);
       const hoofdjeH = parseFloat(APP.stap3.zoomen.hoofdje) || 0;
       benodigdeHoogte = hoogte + onderzoomH + bovenzoomH + uitvalBoven + extraVal + hoofdjeH + 5; // +5 cm knipmarge (incl. hoofdje-hoogte)
     }
@@ -2251,7 +2267,7 @@ function s3recalc() {
     const totToes = validToes.reduce((s, t) => s + cAmt(t), 0);
     html += `<div class="calc-section"><div class="calc-section-label toeslagen">Toeslagen</div>`;
     validToes.forEach(t => {
-      html += `<div class="calc-row" style="font-size:11px"><span class="calc-key" style="color:var(--terracotta)">${t.label} <span style="color:var(--text-dim)">(${t.aantal}× € ${(t.tarief*F).toFixed(2)})</span></span><span style="font-size:12px;color:var(--terracotta)">${fmtE(cAmt(t))}</span></div>`;
+      html += `<div class="calc-row" style="font-size:11px"><span class="calc-key" style="color:var(--terracotta)">${t.label} ${t.eenheid==='% op confectie'?'':`<span style="color:var(--text-dim)">(${(+t.aantal.toFixed(2))}× € ${(t.tarief*F).toFixed(2)})</span>`}</span><span style="font-size:12px;color:var(--terracotta)">${fmtE(cAmt(t))}</span></div>`;
     });
     html += `<div class="calc-row" style="font-weight:500"><span class="calc-key">Totaal toeslagen</span><span class="calc-val" style="color:var(--terracotta)">${fmtE(totToes)}</span></div>`;
     html += `</div>`;
@@ -2407,7 +2423,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
-function startNieuweOrder() { closeOrderConfirm();SESSION_ORDERS.length=0;APP.stap1={fabric:null,ruimte:'',commissie:'',vestiging:''};APP.stap2={model:null};APP.stap3={maten:{gekanteld:false},zoomen:{...HC_DEFAULTS},typeSpecific:{},verdeling:'',afwerking:{}};deviations.clear();document.getElementById('s1Ruimte').value='';document.getElementById('s1Commissie').value='';document.getElementById('s1Vestiging').selectedIndex=0;document.getElementById('s1Search').value='';document.getElementById('s1Banner').classList.remove('visible');document.getElementById('modelDetail').classList.remove('visible');document.getElementById('s3Accordions').innerHTML='';document.getElementById('calcContent').innerHTML='';const tb=document.getElementById('calcTotaalBar');if(tb)tb.style.display='none';const tbs=document.getElementById('topbarSession');if(tbs)tbs.style.display='none';filterFabrics();renderModels();updateSections();updateSelSummary();window.scrollTo(0,0); }
+function startNieuweOrder() { closeOrderConfirm();SESSION_ORDERS.length=0;APP.stap1={fabric:null,ruimte:'',commissie:'',vestiging:''};APP.stap2={model:null};APP.stap3={maten:{gekanteld:false},zoomen:{...HC_DEFAULTS},typeSpecific:{},verdeling:'',afwerking:{}};deviations.clear();document.getElementById('s1Ruimte').value='';document.getElementById('s1Commissie').value='';document.getElementById('s1Vestiging').selectedIndex=0;document.getElementById('s1Search').value='';document.getElementById('s1Banner').classList.remove('visible');{const kw=document.getElementById('s1KleurWrap');if(kw)kw.style.display='none';const ki=document.getElementById('s1KleurInput');if(ki)ki.value='';const sk=document.getElementById('schuinKeuze');if(sk){sk.style.display='none';sk.innerHTML='';}}document.getElementById('modelDetail').classList.remove('visible');document.getElementById('s3Accordions').innerHTML='';document.getElementById('calcContent').innerHTML='';const tb=document.getElementById('calcTotaalBar');if(tb)tb.style.display='none';const tbs=document.getElementById('topbarSession');if(tbs)tbs.style.display='none';filterFabrics();renderModels();updateSections();updateSelSummary();window.scrollTo(0,0); }
 
 // ══ CONFECTIEBON PDF GENERATIE (A5) ══
 
@@ -2417,7 +2433,25 @@ function startNieuweOrder() { closeOrderConfirm();SESSION_ORDERS.length=0;APP.st
 //    Gebruikt jsPDF (async geladen).
 // ══════════════════════════════════════════════════════════════════════════════
 
-function generateConfectieBonPDF(orderPayload, c) {
+// Alle type-specifieke keuzes + vinkjes (strijken, rail, trekstang) voor werkbon en orderbevestiging
+function bonKeuzeRows(s3, modelId, voorWerkbon){
+  const out=[]; const cfg=MODEL_CONFIGS[modelId]; const ts=s3.typeSpecific||{};
+  const skip=['runnerafstand','wavelengte','plooitype','railtype'];
+  (cfg?.typeFields||[]).forEach(f=>{
+    if(skip.includes(f.id)) return;
+    if(f.id==='runnerkleur' && ts.runners!=='ja') return;
+    let v=ts[f.id]; if(v===undefined||v===null||v==='') return;
+    if(f.options){ const o=f.options.find(o=>String(o.val)===String(v)); if(o) v=o.label; }
+    else if(f.unit) v=v+' '+f.unit;
+    out.push([f.label+':', String(v)]);
+  });
+  if(!voorWerkbon){ out.push(['Strijken:', s3.zoomen?.strijken!==false?'Ja':'Nee']);
+  if(s3.afwerking?.rail) out.push(['Gordijnrail meeleveren:','Ja']); }
+  if(s3.afwerking?.trekstang) out.push(['Trekstang meeleveren:','Ja']);
+  return out;
+}
+function _genConfectieBon(orderPayload, c, k) {
+  const lh = 5 * k; // regelhoogte (mm), schaalt mee om op 1 A5-vel te passen
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a5' }); // A5: 148 × 210 mm
   const lm = 12;
@@ -2429,35 +2463,36 @@ function generateConfectieBonPDF(orderPayload, c) {
 
   // ── Title ──
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
+  doc.setFontSize(13 * Math.max(k, 0.85));
   doc.setTextColor(...dark);
   const s3 = APP.stap3;
   const isVouw = orderPayload.model.id === 'vouw';
   const isWave = orderPayload.model.id === 'wave';
   const isPlooi = orderPayload.model.id === 'plooi';
-  const titleText = isVouw ? 'Werkbon atelier — Vouwgordijn' : `Werkbon atelier — ${orderPayload.model.naam}`;
+  const titleText = isVouw ? 'Werkbon atelier — Vouwgordijn' : `Werkbon atelier — ${orderPayload.model.naam}${(s3.schuin&&s3.schuin.actief&&(orderPayload.model.id==='plooi'||orderPayload.model.id==='wave'))?' (schuin)':''}`;
   doc.text(titleText, lm, y);
-  y += 8;
+  y += 8 * k;
 
   // ── Helper: label-value row ──
   function row(label, value) {
     if (value === undefined || value === null || value === '') return;
-    if (y > 192) { doc.addPage(); y = 14; }
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(9 * k);
+    const vl = doc.splitTextToSize(String(value), 136 - (lm + 52));
+    if (y + lh * (vl.length - 1) > 192) { doc.addPage(); y = 14; }
     doc.setTextColor(...mid);
     doc.text(label, lm, y);
     doc.setTextColor(...dark);
-    doc.text(String(value), lm + 52, y);
-    y += 5;
+    doc.text(vl, lm + 52, y);
+    y += lh * vl.length;
   }
 
   function divider() {
-    y += 1;
+    y += 1 * k;
     doc.setDrawColor(210, 200, 190);
     doc.setLineWidth(0.2);
     doc.line(lm, y, 136, y);
-    y += 3;
+    y += 3 * k;
   }
 
   // ── Ordergegevens ──
@@ -2473,17 +2508,14 @@ function generateConfectieBonPDF(orderPayload, c) {
 
   // ── Stof ──
   const kleurTxt = orderPayload.stof.kleur ? ` ${orderPayload.stof.kleur}` : '';
-  row('Merk, stofnaam en kleurnr:', `${orderPayload.stof.naam}${kleurTxt}`);
+  row('Merk, stofnaam en kleurnr:', `${orderPayload.stof.leverancier ? orderPayload.stof.leverancier + ' ' : ''}${orderPayload.stof.naam}${kleurTxt}`);
   if (orderPayload.stof.artikelnr) row('Artikelnummer:', orderPayload.stof.artikelnr);
   if (orderPayload.gekanteld) row('Stof gekanteld:', 'Ja');
 
   // ── Stofbestelling (atelier bestelt zelf bij de leverancier) ──
-  row('Leverancier stof:', orderPayload.stof.leverancier);
   row('Te bestellen stof:', c.isHoogtestof ? `${c.totaalMIncl.toFixed(2)} m (kamerhoog)` : `${c.totaalMIncl.toFixed(2)} m (${c.totaalBanen} banen × ${c.knipmaat} cm)`);
   if (orderPayload.voering) {
-    row('Voering (bestellen):', `${orderPayload.voering.naam}${orderPayload.voering.artikelnr ? ' · ' + orderPayload.voering.artikelnr : ''}`);
-    row('Kleurnummer voering:', orderPayload.voering.kleur);
-    row('Leverancier voering:', orderPayload.voering.leverancier);
+    row('Voering (bestellen):', `${orderPayload.voering.leverancier ? orderPayload.voering.leverancier + ' ' : ''}${orderPayload.voering.naam}${orderPayload.voering.kleur ? ', kleur ' + orderPayload.voering.kleur : ''}${orderPayload.voering.artikelnr ? ' · ' + orderPayload.voering.artikelnr : ''}`);
     row('Te bestellen voering:', `${orderPayload.voering.meters.toFixed(2)} m`);
   }
 
@@ -2504,15 +2536,15 @@ function generateConfectieBonPDF(orderPayload, c) {
   } else {
     // ── Gordijn ──
     const verdLabel = {links:'Stuk Links',rechts:'Stuk Rechts',gelijk:'Gelijk Stel',ongelijk:'Ongelijk Stel'}[orderPayload.verdeling] || orderPayload.verdeling;
-    row('Maatvoering:', verdLabel);
+    const schBon = !!(s3.schuin && s3.schuin.actief && (orderPayload.model.id==='plooi'||orderPayload.model.id==='wave'));
+    if (schBon) schuinRows(s3).forEach(r=>row(r[0],r[1])); else row('Maatvoering:', verdLabel);
 
     const hoofdje = s3.zoomen.hoofdje || 0;
-    row('Hoogte (incl. hoofdje):', `${orderPayload.maten.hoogte + hoofdje}`);
-    row('Breedte (incl. overmaat):', `${orderPayload.maten.breedte}`);
+    if (!schBon) { row('Hoogte (incl. hoofdje):', `${orderPayload.maten.hoogte + hoofdje}`);
+    row('Breedte (incl. overmaat):', `${orderPayload.maten.breedte}`); }
 
     if (c.isHoogtestof) {
       row('Snijmaat:', `${c.totaalMIncl.toFixed(2)} m`);
-      if (c.knipmaatstuk !== null) row('Knipmaat per stuk:', `${c.knipmaatstuk.toFixed(2)} m`);
     } else {
       row('Snijmaat:', `${c.knipmaat}`);
       row('Banen:', `${c.totaalBanen}`);
@@ -2533,15 +2565,17 @@ function generateConfectieBonPDF(orderPayload, c) {
     if (isPlooi) {
       row('Vliesband:', `${s3.zoomen.bovenzoomHoogte || 10}cm`);
       row('Hoofdje:', `${hoofdje}`);
-      row('Plooitype:', {enkel:'Enkele plooi',vlinder:'Vlinderplooi',tri:'Triplooi',geen:'Geen'}[s3.typeSpecific?.plooitype] || 'Enkele plooi');
+      row('Plooisoort:', {enkel:'Enkele plooi',vlinder:'Vlinderplooi',tri:'Triplooi',geen:'Geen'}[s3.typeSpecific?.plooitype] || 'Enkele plooi');
       if (s3.zoomen.retourplooi) row('Retourplooi:', 'Ja (factor 2,2)');
     } else {
-      row('Bovenzoom:', `${s3.zoomen.bovenzoomType || 'plooiband'}, ${s3.zoomen.bovenzoomHoogte || 10}cm`);
+      row('Vliesband:', `${s3.zoomen.bovenzoomType || 'plooiband'}, ${s3.zoomen.bovenzoomHoogte || 10}cm`);
     }
 
     const ozLabel = {enkel:'Zoom enkel',dubbel:'Zoom dubbel',verzwaring_aanzetten:'Verzwaringskoord gefestonneerd',verzwaring_fabriek:'Verzwaringskoord los in zoom',geen:'Geen'}[s3.zoomen.onderzoomType] || s3.zoomen.onderzoomType;
     row('Onderzijde afwerking:', ozLabel);
     row('Loodjes in zijzoom:', s3.zoomen.gewichtjesZijzoom !== false ? 'Ja' : 'Nee');
+    if (!isWave) row('Plooifactor:', `× ${c.factor.toFixed(2)}`);
+    bonKeuzeRows(s3, orderPayload.model.id, true).forEach(r=>row(r[0],r[1]));
     extrasRows(s3,c).forEach(r=>row(r[0],r[1]));
 
   }
@@ -2558,6 +2592,16 @@ function generateConfectieBonPDF(orderPayload, c) {
   doc.setTextColor(...mid);
   doc.text(`${orderPayload.orderNr}  |  ${new Date(orderPayload.datum).toLocaleDateString('nl-NL')}`, lm, 200);
 
+  return doc;
+}
+
+// Werkbon: A5, altijd op 1 vel. Schaalt het lettertype stapsgewijs terug tot alles past.
+function generateConfectieBonPDF(orderPayload, c) {
+  let doc=null;
+  for (const k of [1, 0.93, 0.87, 0.81, 0.76, 0.71]) {
+    doc = _genConfectieBon(orderPayload, c, k);
+    if (doc.getNumberOfPages() === 1) return doc;
+  }
   return doc;
 }
 
@@ -2646,9 +2690,11 @@ function generateOrderBevestigingPDF(orderPayload, c) {
     row('Gevoerd:', s3.typeSpecific?.vouwVoering === 'ja' ? 'Ja' : 'Nee');
   } else {
     const verdLabel = {links:'Stuk Links',rechts:'Stuk Rechts',gelijk:'Gelijk Stel',ongelijk:'Ongelijk Stel'}[orderPayload.verdeling] || '—';
+    const schOb = !!(s3.schuin && s3.schuin.actief && (orderPayload.model.id==='plooi'||orderPayload.model.id==='wave'));
+    if (schOb) { schuinRows(s3).forEach(r=>row(r[0],r[1])); } else {
     row('Verdeling:', verdLabel);
     row('Breedte:', `${orderPayload.maten.breedte} cm`);
-    row('Hoogte:', `${orderPayload.maten.hoogte} cm`);
+    row('Hoogte:', `${orderPayload.maten.hoogte} cm`); }
     if (isWave) {
       row('Runnerafstand:', `${c.runnerafstand} cm`);
       row('Wavelengte:', `${c.wavelengte} cm`);
@@ -2673,6 +2719,9 @@ function generateOrderBevestigingPDF(orderPayload, c) {
     const ozLabel = {enkel:'Zoom enkel',dubbel:'Zoom dubbel',verzwaring_aanzetten:'Verzw.koord gefestonneerd',verzwaring_fabriek:'Verzw.koord los in zoom',geen:'Geen'}[s3.zoomen.onderzoomType] || '—';
     row('Onderzoom:', ozLabel);
     row('Loodjes zijzoom:', s3.zoomen.gewichtjesZijzoom !== false ? 'Ja' : 'Nee');
+    if (!isWave) row('Factor:', `× ${c.factor.toFixed(2)}`);
+    if (isPlooi && s3.zoomen.retourplooi) row('Retourplooi:', 'Ja (factor 2,2)');
+    bonKeuzeRows(s3, orderPayload.model.id).forEach(r=>row(r[0],r[1]));
     extrasRows(s3,c).forEach(r=>row(r[0],r[1]));
     if (orderPayload.voering) row('Voering:', `${orderPayload.voering.naam}${orderPayload.voering.kleur?' kleur '+orderPayload.voering.kleur:''} (${orderPayload.voering.meters.toFixed(2)} m)`);
   }
@@ -2719,6 +2768,10 @@ function generateOrderBevestigingPDF(orderPayload, c) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 async function placeOrder() {
+  if (APP.stap1.fabric && !(APP.stap1.kleurnr||'').trim()) {
+    alert('Vul het kleurnummer van de stof in (bij Stof selecteren, onder de gekozen stof) voordat je de order plaatst.');
+    return;
+  }
   if (APP.stap3.afwerking.voering && APP.stap3.afwerking.voeringFabric && !(APP.stap3.afwerking.voeringKleur||'').trim()) {
     alert('Vul het kleurnummer van de voering in (bij Voering in stap 3) voordat je de order plaatst.');
     return;
@@ -2748,12 +2801,13 @@ async function placeOrder() {
     bonNr, bonTotaal: 0, // wordt ingevuld bij finalize
     plannerTitle:'', // wordt ingevuld bij finalize
     plannerNotities:'', // wordt ingevuld bij finalize
-    stof:{naam:f.name,artikelnr:f.artikelnr,leverancier:f.leverancier||'',prijsPerMeter:f.prijsPerMeter,kleur:f.kamerkant||''},
+    stof:{naam:f.name,artikelnr:f.artikelnr,leverancier:f.leverancier||'',prijsPerMeter:f.prijsPerMeter,kleur:(APP.stap1.kleurnr||''),kamerkant:f.kamerkant||''},
     model:{naam:m.naam,id:m.id,factor:c.factor},
     maten:{breedte:c.breedte,hoogte:c.hoogte,knipmaat:c.knipmaat,banen:c.totaalBanen,totaalM:parseFloat(c.totaalMIncl.toFixed(2))},
     zoomen:JSON.parse(JSON.stringify(s3.zoomen)),
     typeSpecific:JSON.parse(JSON.stringify(s3.typeSpecific)),
     verdeling:s3.verdeling,
+    schuin:(schuinActief()?JSON.parse(JSON.stringify(s3.schuin)):null),
     gekanteld:s3.maten.gekanteld||false,
     voering:c.voeringFabric?{naam:c.voeringFabric.name,artikelnr:c.voeringFabric.artikelnr,kleur:(APP.stap3.afwerking.voeringKleur||''),leverancier:c.voeringFabric.leverancier||'',meters:parseFloat(c.voeringM.toFixed(2))}:null,
     prijzen:{stofVerkoop:parseFloat(stofV.toFixed(2)),voeringVerkoop:parseFloat(vV.toFixed(2)),confVerkoop:parseFloat(cV.toFixed(2)),toesVerkoop:parseFloat(tV.toFixed(2)),totaalExBTW:parseFloat((totExBTW-btw).toFixed(2)),btw:parseFloat(btw.toFixed(2)),totaalInclBTW:parseFloat(totInclBTW.toFixed(2))},
@@ -2826,7 +2880,7 @@ function startVolgendeBon() {
   document.getElementById('s1Commissie').value = prevCommissie;
   document.getElementById('s1Vestiging').value = prevVestiging;
   document.getElementById('s1Search').value = '';
-  document.getElementById('s1Banner').classList.remove('visible');
+  document.getElementById('s1Banner').classList.remove('visible');{const kw=document.getElementById('s1KleurWrap');if(kw)kw.style.display='none';const ki=document.getElementById('s1KleurInput');if(ki)ki.value='';const sk=document.getElementById('schuinKeuze');if(sk){sk.style.display='none';sk.innerHTML='';}}
   document.getElementById('modelDetail').classList.remove('visible');
   document.getElementById('s3Accordions').innerHTML = '';
   document.getElementById('calcContent').innerHTML = '';
@@ -2862,12 +2916,13 @@ async function finalizeSessie() {
     const kamerkant = f.kamerkant ? `Kamerkant: ${f.kamerkant}` : '';
     const gekanteld = order.gekanteld ? ' (GEKANTELD)' : '';
     if (isVouw) {
-      order.plannerNotities = [`${f.name} ${f.artikelnr}`, f.leverancier ? `Leverancier: ${f.leverancier}` : '', kamerkant, `Vouwgordijn ${(s3.typeSpecific?.vouwType||'type4').replace('type','')}`, `${order.maten.breedte} × ${order.maten.hoogte} cm`, `${order.maten.totaalM} m`].filter(Boolean).join('\n');
+      order.plannerNotities = [`${f.name}${order.stof.kleur?' kleur '+order.stof.kleur:''} ${f.artikelnr}`, f.leverancier ? `Leverancier: ${f.leverancier}` : '', kamerkant, `Vouwgordijn ${(s3.typeSpecific?.vouwType||'type4').replace('type','')}`, `${order.maten.breedte} × ${order.maten.hoogte} cm`, `${order.maten.totaalM} m`].filter(Boolean).join('\n');
     } else if (isWave) {
-      order.plannerNotities = [`${f.name} ${f.artikelnr}${gekanteld}`, f.leverancier ? `Leverancier: ${f.leverancier}` : '', kamerkant, `Wavegordijn | ${order.verdeling}`, `${c.totalRunners} runners × ${c.wavelengte} cm`, (s3.typeSpecific?.railtype ? `Rail: ${s3.typeSpecific.railtype}` : ''), `${order.maten.totaalM} m`, order.voering ? `Voering: ${order.voering.naam} ${order.voering.kleur?'kleur '+order.voering.kleur:(order.voering.artikelnr||'')} — ${order.voering.meters} m` : ''].filter(Boolean).join('\n');
+      order.plannerNotities = [`${f.name}${order.stof.kleur?' kleur '+order.stof.kleur:''} ${f.artikelnr}${gekanteld}`, f.leverancier ? `Leverancier: ${f.leverancier}` : '', kamerkant, `Wavegordijn | ${order.verdeling}`, `${c.totalRunners} runners × ${c.wavelengte} cm`, (s3.typeSpecific?.railtype ? `Rail: ${s3.typeSpecific.railtype}` : ''), `${order.maten.totaalM} m`, order.voering ? `Voering: ${order.voering.naam} ${order.voering.kleur?'kleur '+order.voering.kleur:(order.voering.artikelnr||'')} — ${order.voering.meters} m` : ''].filter(Boolean).join('\n');
     } else {
-      order.plannerNotities = [`${f.name} ${f.artikelnr}${gekanteld}`, f.leverancier ? `Leverancier: ${f.leverancier}` : '', kamerkant, `${order.model.naam} | ${order.verdeling}`, `${order.maten.totaalM} m`, order.voering ? `Voering: ${order.voering.naam} ${order.voering.kleur?'kleur '+order.voering.kleur:(order.voering.artikelnr||'')} — ${order.voering.meters} m` : ''].filter(Boolean).join('\n');
+      order.plannerNotities = [`${f.name}${order.stof.kleur?' kleur '+order.stof.kleur:''} ${f.artikelnr}${gekanteld}`, f.leverancier ? `Leverancier: ${f.leverancier}` : '', kamerkant, `${order.model.naam} | ${order.verdeling}`, `${order.maten.totaalM} m`, order.voering ? `Voering: ${order.voering.naam} ${order.voering.kleur?'kleur '+order.voering.kleur:(order.voering.artikelnr||'')} — ${order.voering.meters} m` : ''].filter(Boolean).join('\n');
     }
+    if (s3.schuin && s3.schuin.actief && (order.model.id==='plooi'||order.model.id==='wave')) { const sv=SCHUIN_VARIANTEN[s3.schuin.variant]||SCHUIN_VARIANTEN['1']; order.plannerNotities += '\nSCHUIN GORDIJN: ' + sv.label + ' (' + sv.sub.toLowerCase() + ') — ' + sv.velden.map(l=>l+' '+(s3.schuin[l]||'?')).join(', ') + ' cm' + (s3.schuin.plooi==='verstek'&&order.model.id==='plooi'?' | plooien in verstek (+30 cm hoogte)':'') + ' | Vrijhangen: ' + (s3.schuin.vrijhangen||'—'); }
     { const e2=(s3.extras||{}); if(s3.vermaakTekst && String(s3.vermaakTekst).trim() && ((e2.vermaakStart&&e2.vermaakStart.on)||(e2.vermaakUur&&e2.vermaakUur.on))) order.plannerNotities += '\nVermaakwerk: ' + String(s3.vermaakTekst).trim().replace(/\s+/g,' '); }
   });
 
@@ -2983,7 +3038,7 @@ function generateLeveranciersBestellingen(zip, collect) {
       leverancier: order.stof.leverancier || 'Onbekend',
       commissie: order.commissie,
       vestiging: order.vestiging,
-      stofnaam: order.stof.naam,
+      stofnaam: order.stof.naam + (order.stof.kleur ? ' — kleur ' + order.stof.kleur : ''),
       artikelnr: order.stof.artikelnr,
       bon: order.bonTotaal > 1 ? `${order.bonNr}/${order.bonTotaal}` : '1',
       model: order.model.naam,
@@ -3194,6 +3249,69 @@ const M365_JSON_SCHEMA = {
     "orderBevestigingFilename": {"type": "string"}
   }
 };
+
+
+// ══ SCHUIN GORDIJN (trapezium ramen) ══
+const SCHUIN_IMG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAyMAAAF5CAYAAACMWfV9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAADnlSURBVHhe7d1nnFTl/b/xz31mZnvvBZYmYEFQQI0aSzRq7GLXqImJJlFj/WtssUWxR6PGGEts+VljRQR7FBULKlKUXmSX7b3vlHP/H7AaGcACuzszO9fb1zzhfFd8ITtzrj3nvo+x1loBAAAAwABzwn8BAAAAAAYCMQIAAAAgIogRAAAAABFBjAAAAACICGIEAAAAQEQQIwAAAAAighgBAAAAEBHECAAAAICIIEYAAAAARAQxAgAAACAiiBEAAAAAEUGMAAAAAIgIYgQAAABARBAjAAAAACKCGAEAAAAQEcQIAAAAgIggRgAAAABEBDECAAAAICKIEQAAAAARQYwAAAAAiAhiBAAAAEBEECMAAAAAIoIYAQAAABARxAgAAACAiCBGAAAAAEQEMQIAAAAgIogRAAAAABFBjAAAAACICGIEAAAAQEQQIwAAAAAighgBAAAAEBHECAAAAICIIEYAAAAARAQxAgAAACAiiBEAAAAAEUGMAAAAAIgIYgQAAABARBAjAAAAACKCGAEAAAAQEcQIAAAAgIggRgAAAABEBDECAAAAICKIEQAAAAARQYwAAAAAiAhiBAAAAEBEECMAAAAAIoIYAQAAABARxAgAAACAiCBGAAAAAEQEMQIAAAAgIogRAAAAABFhrLU2/BcBALEh4FqFNvEubiT5HCPHhB8BACA6ECMAEMMmPL9Cq9sD8pgNi2NEuk8fHTpC3jiukYBrtbCpRwF3w486IynF62ibrEQZI3UFXVV0BNUWcBWyVsleR2WpXqX7PAQdAPQTYgQAYth2zy2X35Vu3blwvV//+kT7Z8Wp8sTxiXRNV1CTp61UXVco/JCMkSbkJOrdg0fISLri01o9ubJV9T0hBaxVps/R5Lxk3bpTobbJTgz/cgBAHyBGACCGbffcciV5HM05bGT4Ian3hDuOW0Q1XUHtNG2lxmUn6sWfl4UfljGSI6MZ5W361axKHVCaqr9MKlBZmk+3zm/QXxc26JTRmbp5p0L5uDwCAH2OBewAEOOMJMds/MXp8zqOMfI5G768xsgY6d3qTuUmenTDToUalZ4gn2N05rbZyk/26NP6bjX7N7yyAgDYcsQIAMQ4V1LQtQra/71C1orL3j+MkXT9TgX64qhRKkvzfXM1KcXryGuM/CGroBv+VQCAvkCMAECMq+wM6ozZVTrj/f+9zpxdrcXNPeGj2ARP75WTr68kWUlLW/xq9odUluZTVqIn7CsAAH2BNSMAEMO2e2651nYGNSRl3U/0v2Yk3bt7iXYtSP72eNz5es1IfXdogx3HPI5R7YljlLCRtSDdIatzP6jSk6tadd/uJTp2ZAa3vAFAPyBGACCGbffcciV6HH106Ij1ft30nmzH+wn01zGSneDRGdvkrHfMY6TfjMneYLextoCr2xbU694lzTprm2xdPD4vrrdHBoD+RIwAQAzb7rnlSvY4+uTwje+mFe++jpHxOUmavt+Gu2l9m5XUHXT1/z6q0ZOrWnXq6ExNnVyopPBaAQD0GdaMAAAgqa5r3dqb6eXtunrHfP1lUgEhAgD9jBgBgBjnd63qu0MbvJp6Qgpx8fsH6QpZXfFprV78ql2XT8jTWdtmK9XLRyQA9Ddu0wKAGDbh+RX6qj0gJ2xxtjHS8DSfPjpshLxhx+LJ17dppXodHTsiM/ywilI8+t3YbP3+vSo9tapVxcleHTMyY4M/s9PGZmloqm+9XwMAbDliBABiWMC1cjfxLm6M5DVG8bz2uqYrqN2mr1Jd94YPLTSSts9O1FsHDde2z65QbXcwfETqnXv9F8O0c35870wGAP2BGAGAGPddb+Jx3CHfsJI29Un37Qsgm5pR7xx/lgDQ94gRAAAAABHB6jwAAAAAEUGMAAAAAIgIYgQAAABARBAjAAAAACKCGAEAAAAQEeymBQA/UsgGtKJjtkan7cHmuT8If0Zbgj89AIMZMQIAP9Kbtbfrnfo7dXTpHXKMN/ww1uORx46X1+RyVv1DWSlopTUdQe1dlKzEeH5qJYBBjxgBgB/ItSEtbX9bD6w6TkHrl9ck8XPr79HUM1z/LX9IxiSFH8KmWCkkqcXv6oZJeTp9qyx5+GsGYJAiRgDgB7BytarjAz225nTtW3CRXqi8XJdtPUeGpXffKeAaza5LUVfQfOeT4vEtVqroDOpvS5s1Js2rq8fnao/CFLIXwKBEjADAD9AVatYDq47VYSVT5TVJ+vuKQ3X9uJXECPqclbSo2a+TPqjSjRPy9Od5DXpyjyKNSEsgSAAMOnyKAsD3aA3W6MHVJ2rHrKNUljJJxnBKiH7W+1ds94Jknb5Vpk77qFbVXcHwKQCIecQIAGySlWuDmlE9VVul7aldck7hSggGjJHkMUa/HpWhw0vTdMncevW43MwAYHDhUxUANiFo/Xqv4X4F3U7tW3C+fE5y+AjQ77yO0W+3ylDIWl03v0GdQTd8BABiFjECABthZfVp09OaXX+/Di2+Vl6TGD4CDAgjKc3r6I7JBVreFtATq9vCRwAgZhEjALARazvn6ePGR3XWVq8qw1cUfhgYcDmJHk3dMU8PrWzVm9WdCrH/DIBBgBgBgG+xsqrsWqhH1/xG+xdeonRvngx7GCEKGEnDUn3668Q8XTS3Tgua/WIJCYBYR4wAQC8rq85gk6ZXXaX9Ci/SmPSf8VBDRBWPkSbnJuva8bm64vN61feEeH4LgJhGjABAr6DbrWfWnquRabtqUtax7JyFqOQx0v7Fqdo9P1m//7BGTT2h8BEAiBl80gKApKDt0Ws1NynodmvPvLPkGN4eEb18jtGF22VraKpXty9uVpD1IwBiFJ+2AOKelat5zS+q3r9KJ5bdL5+TxO1ZiHpeY3TV+Fwtbu3RHYsIEgCxiRgBENesXC1vf1czqv+iXxRepmRPFgvWETNyEj362+QCPbCiRTPXdrCgHUDMIUYAxLWGntWaUX2NTir7lwqTxoQfBqKakVSS7NXTPy3W3UuataC5J3wEAKIaMQIgbnUGG/XomlO1V97ZGpYymVuzEJOMpHHZifrtVpk67r0qrWoPsMMWgJhBjACIS52hRj299jyNzzhY4zIPkmM84SNAzDCSppSl6cJtsvXnefXqDlmCBEBMIEYAxJ2QDejd+geU7i3QvoUXymsSw0eAmOM1RiePyFBuolfnfFyjnhA5AiD6ESMA4krIBvRO3d/1VccH2q/gIp4lgkElwWN01fY5ag9a3bOkWfQIgGjHpzCAuOHakFZ3fKzPmv+jU4Y/onRfQfgIENNM7w5b9/2kUC+t7dDs+i5u1wIQ1YgRAHHByqqi63O9XH21jhlyhxKdNLbwxaBkJKX5HF2/Y65+91GN3qnpJEgARC1iBEBcaA1U6fHys7RPwQUqS5nM7VkY1IykXfKS9dweJfrT3HoFXBa0A4hOfBoDGPT8bpdeqvqzdsv9tbbLOIArIogLRtKYjASdNipTB71ZobWdwfARAIg4YgTAoBayfj1VcYY8JkG75v6aKyKIK46RfrNVhnbLT9Zf5jeomxXtAKIMn8oABi3XhjS74SG5NqQpJbfIZ5LCR4BBzUjyGKMrJ+TKGunOxU3yc8sWgChCjAAYlKysvmh7RR80PKopJbcoyZMWPgLEBdP7DJKpE/L0r5Wt+vfKVllqBECUIEYADEqrOj7Q6zW36PihdyrDV9h7SgbEr/wkj17dp1TPr2nXJw3dcgkSAFGAGAEwqFi56gq1aFrlZTq8eKqGpuxIiAC93wVlKT6dv022jnu3Ssvb/NyuBSDiiBEAg4aVVVugTg+tPlETs47R8NSdWbAOfItjpJ8Vpeiq8Tm65PN61XeHwkcAYEDxKQ1g0LA2pDfrbtOotD21W97p8hhf+AgQ9xwjnTIyU5NzknTmxzUKsYAEQAQRIwAGhaDt0X9r71BzoFJ75Z0pLyECbJJjpLPGZirRY3T5XLb8BRA5xAiAQcBqfss0LWh9SUeX/lVJnnTWiQDfI8Pn0T92LtTK9oCmVbQryBUSABFAjACIaVau1nR+ptkND+iXZQ8o3ZsfPgJgI4ykdK+jaybk6sYvGvV6VSdBAmDAESMAYlpN9xLdv/pY7V9wqfISR3JFBPgRjJG2zkzQg7sWaerCRq1qD4SPAEC/IkYAxKzOUJNeqbleRxTfoNHpe7JzFrAZjKTxWYk6d2yWzp1Tp4rOIFv+AhgwfHIDiEndoTY9seZ3yk/YSjtkTZHhigiw2RwjHTIkTfsVp+j8ObVq8YcIEgADghgBEGOsXBvSrPq75TEJ2r/wT71b+BIjwJZI9hidPTZLBcle3b20WX522AIwAIgRADHFyurT5qdV3jlXxwy5Sz4nOXwEwGbyOkbXTsjV27VdunNxk1x6BEA/I0YAxAwrq2XtszS96hodXHy1UrxZ4SMAtlB2okeP7lqkmVWdeq2qI/wwAPQpYgRAzGgL1OqNmpt12vAnVJg0lgXrQD8wkoqSvbphhzzdsKBRcxq6uUICoN/wSQ4gBli1BKp0z8pDNCn7OA1N2YEQAfqRkbRTbpLO2yZbZ8+p1ZqOAAvaAfQLPs0BRL2QDeiFyou1c85Jmpx9AovVgQHgGOmwoan6zahMXfx5vTqCbvgIAGwxYgRAVAu4XXqt9hYlebK1V95Z8piE8BEA/cQxRr8amaGcBI8u/LSOIAHQ54gRAFErZAP6sPERrWh/VwcWXSZjPOEjAPqRkZToMZq6Q65C1uqh5S0RWz9iJXWHrF6raNcVn9bqd+9V6bT3KnXNZ3WasaZNAdd+cyuZleRaaWZ5uy77pFanvVeps2ZX6V9LmtabAxB5xAiAqGTlqqJrruY2P6PTRjytdG8BDzYEIiQnwaOrxufpqa/a9WpVh0J2YE/nraRWv6v/92G1TnxnrR5c1qxZNR16v6ZL9y9t0omzKnXRxzXqCa0LDWulx5Y364S3K/Tv5c16v6ZLr67t0Pkf1+iM96vUyRUeIGoQIwCijpXVms5P9UT5GTqk6BolOemECBBhpSle3bFTvi7/vF4fN3SHH+5X7QFXl86p0f+tbNEpozI1Y/8yfX7EKC2YMlIz9y/Tr0Zl6KFlzfrr/HqFrFXQWt29qEnDUn2auf8wLThypD44dIQOKk3Tq2vbVdERCP8tAEQIMQIgqlhZdQQb9GLllZpScqtGpO3KgnUgChhJO2Qn6e87FejiufWq7Q6Gj/SbNe0BvVTepnFZifrzjvkan5OkJI+R1zEal5Ok6yYXavusRN2xqFF1XUF5jFGy1+jEUZnaJjtRXmOUl+TRwWXpag24ag8M7JUdAJtGjACIKt2hFj1bcZ62zzxQo9P2YAtfIIo4Zt2Wv8cPS9cp71WrsrP/g8Ra6ZWKdjX0uDptTJayEjzr/XjCSEr2GE2dXKC7dy2WzzFyjPTmgcP1p/F58nxruM0fkiR1h7hNC4gWfMoDiBoh69eM6mtkJe2Vd6Yc4w0fARBhPsfo96OztEt+sm7+srHfF4S7kubUdskY6ZQx2XI2cqHU6xjtVZyqY0ZkKC/JK9MbTuZbswHXaubaduUneVWUzHsLEC2IEQBR4936+9QVbNEJZffKYecsIGp5jHThttlq9ru6fmGjekL9mSP/+3dvpEN+kJCV7lvcpPdqujRlWLqGpPrCRwBECDECIOKsXC1oeUmz6v+pg4uvUaKTsgWnHQAGQprP0e2T8/VsRbumVbSr/3rErLvCYddd3djYb2MlBa1VT8husPVwT8jq2VUtunpunfYuTNH1kwuU+O17twBEFDECIKKsXFV0ztPbdXfrN8MfU1bCEEIEiAFGUlaCR//5abEeXdmqD+q6NhoKW8pI2r0oRZL00NKmDWJDkkKu1T8XNemkd9ZqRav/m18Pula3LWzQmR9U6+AhaXpkr1J5N3afF4CIIUYARJBVR7BR/17zK+1feJFKk7dnC18ghhhJYzMSdN7W2TpuVpVWtPn7PEgcI+1XmqrcRI/uX9Ks5p7ger+HldQZsnp0WbNeX9uu9IR1pzYhK904r143zK/XKaMy9dCepcpIcHiHAaIMMQIgYtqD9Xqq4kztnvt7bZW2FztnATFqn6IU3TwpTxfPrVd7oO93qhqa6tPxIzO0rNWv8z6q0btVneoOuQpaq9k1nTrr/Sqtag9o6sQC5Sd5FbRWN82r160LG3TG1tmaOrlgowvfAUSesXaAH6MKALJyrasXqi5VspOpAwovjqmdsyq7F+qu5Yfo+nErCSj0OStpUYtfJ8+u0vv7lykpRtY3BFyrqQsb9WFdt17Yu6RP/7tt77//yk9q9cCyZrlW8jqSkVGwdx3JpeNzdf64XDnG6N/Lm3XWB9UKWaskj6OEb5WIkTQm06dZB49Y7/cAEBnECIABF7Q9+m/tXSrvmqtjh/xNad788JGoRoygP8VqjFhJbQFXZ86p1dg0ny7dPkfeb++t2wcCrtVHtV36uL5Ltd0hWWtVmOTVxLwk7VWUKmPW/Xd8VNul575qDf/ybxQle3XBuNzwXwYQAcQIgAFlZbW49XXNrL5WZ456WUmejPCRqEeMoD/Faoyo97+9K+jqhHerdNLIdB09LIM1GgC+E5+iAAbUyvbZerVmqk4o+6cSPenhhwHEMCMp2evouh3zdM2CRr28tmOju18BwNeIEQADprZnuZ6qOEeHFk9VUdI27JwFDEJG0naZiZr+s1Jdt6BB9T0hggTAJhEjAPqdlVVHsEEzqv+ifQrO08i03bi9CRjEHCMNTfHpnK2zNeXtSpV3Bvp8y18AgwNnAwD6XcDt0mPlpyknoUyTs48jRIA44DHSMWVpOrosVVd+Xq+e/ntEO4AYxhkBgH4VskHNqr9HaZ48HVh4ubzGFz4CYJDyOUbnbJOtzASPbvyikSABsAFiBEC/sXL1afNTWtL2pg4tmSqvk9R7RzmAeOExRldsn6s3qzt1z7JmhdjEE8C3ECMA+onVsvZZerf+fk0pvUXp3gIWrANxKi/Jo+f2LNHLazv0Tk0XC9oBfIMYAdAPrNqCdZpRdZWOKr1ZJUnbhQ8AiCOmN0imTsjTGR/W6NPG7vARAHGKGAHQ55oDlbp/1ZHaOedXKkueGH4YQBwykibnJunGifm6Zn6DvuoIhI8AiEPECIA+FbIBzaj6iyZmHaedc06SY7zhIwDilGOkw4am6cDSVJ3zSa3aAy5b/gJxjhgB0GcCbpdeqblBrqx2zz1NXpMQPgIgznmMdOrIDOUnenTZ5/XqChIkQDwjRgD0CSurjxof0ZrOT3REyVT5nOTwEQCQJKV4Hd02qUCdIVePrGhlQTsQx4gRAFvMtSGt7vhIc5uf00llDyjVmxc+AgDrSfc6umxcrh5e0aqXKtrFI0iA+ESMANgiVq4quj7Xv9f8WocU/0Wpnly28AXwvYyRRqT59MBuhfrb4iZ9zg5bQFwiRgBska5gs16tuUlHl96p4ak7yzGe8BEA2CgjaVxWoi7ZLkd/nFOryq4g60eAOEOMANhs3aFWPfzVyRqeupO2Tt9XhrcUAD+SkbRPUYp+PSpTp86uUV13KHwEwCDGmQOAzWKtq9dqblSGr1j75J/LFREAm83nGJ22VYZ2y0vS7Ysa1RF0w0cADFLECIAfzbUhvddwnxoDa3R06e3ysIUvgC1gJDnG6JxtsrSyPahbvmxSDyvagbhAjAD4UaxcLWx9WTOqr9PhxdcryZMWPgIAP5qRlJ3g0X27FGhWbaemr22XpUeAQY8YAfCj1HQt0Xv19+ncrd5QVsLQ3lMIAOgbGQke3TG5QHcvadGs2i6eQQIMcsQIgB/EyqrJX6H7Vh+h3XNPU2HSWLbwBdDnjKTtMhP15+1zdP6cGq1o87PDFjCIESMAvpeVld/t1ItVF2vfggs1LvNgQgRAv3GMtFdhis7bNkeXz2tQs58dtoDBihgB8L1C1q/pVVcryzdUu+acKo/xhY8AQJ/yGOmXIzJUkuLVaR/WqosF7cCgRIwA+E4hG9A7df9QvX+1fl5wIVv4AhgwHiNdOz5Xxcke3fxFI7drAYMQMQLgO1h91TFHC1un67fDH1OqN5cF6wAGVJrP0dXjc/VuTaeeWt2qIFtsAYMKMQJgo6yslre/p/+sPVtHlNwgr0lgnQiAAWck5SZ4dOdOBbpzcbPequ4Ud2wBgwcxAmCj2oN1eqbiXJ049AGVpewUfhgABowx0jZZibp/10JdMrdeLQEWtAODBTECYAOtgWo9Xn6G9sj/o0pTxnNFBEDEGUlbZyTqnK2zNeWdSq1sD7CGBBgEiBEA6+lxO/Ri1aXKSxihXXNOkcPbBIAo4THSL4en66Th6Zo6v0GutQQJEOM4ywDQy8q1Qb1Xf698JkmHF0+VY7wsWAcQVXyO0YkjMpTgMbpifoO6gm74CIAYQowAkHoXrM9pekKfNj2hg4uultdJDB8BgKiQ6nV088R8vVXVqf9b1cbVESCGESMAZOVqVfuH+rjpMf1q2GNK8xWEjwBAVEnzOXp2zxK9UNGuN6s6ww8DiBHECAA1+9fqqYoz9YvCy1SQtBUL1gFEPSOpJMWrK7fP0a9nV+vj+m6ukAAxiBgB4lxroFpPV/xRe+Sdpa3S9pDhbQFAjDCSds5N1r0/KdQNCxvV0BMiSIAYw1kHEOeer/yTRqftrd1yf8MVEQAxxzHSASUp2rMwWYe9s1atfha0A7GEGAHilN/t1LSqK+QYr3bNPVWO8YSPAEBM8BijP4zJ0visRE1d2Ci/y/URIFYQI0Accm1QC1qmqbJrvo4uvU3JnszwEQCIGUZSksforxPzVdMd1L+WtYoeAWIDMQLEGStXy9pnaVb9PTq69DYleTJ5lgiAmGd6t/y9fFyO7l/WrOfL2xQiSICoR4wAcaaya6FerLxYU0pvUW7iSNaJABhURmck6Jm9S/TXRc2q6AiwoB2IcsQIECesrNqCdZpRfZ0OKPyzhqVMJkQADDpG0vBUn/60bbaOnFWpZW3+8BEAUYQYAeJEd6hVj685XcNTd9G2GQewhS+AQcsx0sGlqTp762xd+lm9WgPssAVEK85GgDgQsgHNqrtb6d4C7ZN/jnxOUvgIAAwqPsfolBEZ2jrDp2vmN6gj6HLLFhCFiBEgDsyqv0dfdc3REaU3yWO84YcBYFByjHThdjla3R7QrYuaFGCLLSDqECNAP/OHurWmZbm+qPtU82s/0hd1n6q8daUCof6/j9nKan7LdH3S9ISOKr1dKZ5sds4CEFeyEjx6ePcifVjXrTerOxW0BAkQTYy1fFcC/cFaV5Xta/TYwru0tGGB2vzNCtmQvI5XGQnZmlCwi47e9nQVpg4J/9I+YeWqtnuZnlp7jqaU3KQhyRNYsN5HKrsX6q7lh+j6cStZe4M+ZyUtavHr5NlVen//MiV5+L7dUq6V5jX36LQPanTzxDz9rDBFDn+sQFTgUxToJ23+Ft0150p9WvWuJhbtodt+/pSePnKObtrnMW1fsIveKZ+pu+Zcpc5Ae/iX9gGrJn+5Hlx9rHbPPU1DkscTIgDilmOkHbMTdevEPN20sFGrOwLhIwAihBgB+snjC+/WiqYvddoOF+u3O16kkozhcoyjssxR+t2Ol2ivsoO1rHGBljbMV19foAy43ZpWdbn2zj9PO2RO4af3ACBpr8IUnTgiQ2d8XKvGnhAL2oEowBkK0Oesmrrr9c6a6SrLGKXdhx6gBE/iN1cmjIwSvcn6+Ygp+knJvmoPtPXpMg6/26lpVVcozZOnnXJOlMd4wkcAIC45RjpxRLq2y0zQuZ/WqiPIlr9ApBEjQB+zkta0LFfQDWp41lgleZM3eovU2NzxOv8nN+inQw/Y6PHNYeXq/YYH1BKo0i+KLpfXJLJgHQC+JcExum5CrtK8ju5a3KxQH1+ZBvDjECNAX7NSIOSXlVWSN0XOAF2ZsHK1uuMjzW9+XicMvVtp3vzwEQCApGSvo2vG52paebv+vbJVIXoEiBhiBBgkVrbP1r+/+rWOKL1ZSZ6M8MMAgF5GUkGSVw/vVqQnV7dpVk0n60eACCFGgL5mpKykXHmMo6r2r+QP9YRPSJJ6Qt16YcmjWlQ/d4sXsHeGmjW9+iqdOvwJlaVMYsE6APwAozMSdNWEXF34Wb1WtfnFMxGBgccZC9DHjIyGZY5WSdpwrWxerLqOyg1iw8rq3TUz9e8Ft2t1y1LZzf6ZnFVroEYPrDpOO2QdrSEpOxAiAPADOUaanJOkC7bJ0u8+qlVlV3Cz340BbB7OWoB+4PMk6ITtzlSHv1V/+/hy1XauVciGZGUVcoNa27paLyx5RNlJ+ZpQ8BMZs3mLzEM2oOlVV6g0eXvtmfd7QgQAfiSfY3T88AwdXJqqa+c3qIcFJMCA4swF6CeTS/bSydufr4q2Vbr8v7/RHR9frgfm3qjbP75U17z7B3UFO/Sr8ReoMG3IZu2mFbIBvVV7hyTpiJLrN+vfAQBYd4Xkt1tlyrVWV82vVxdBAgwYYgToJ45xdMjoE/TXnz+p7Qt20aL6z/XOmula0bRI2+fvrFv2fVy7D91/s54D4tqQPmv+j96t/7sOK5kqx/jYwhcANpORlOFzdOfOBZrb2KPn1rSxfgQYIMaG38wOIMpZfdX5mWZWX6ejSm9VXuJIrooMsMruhbpr+SG6ftxKbo1Dn7OSFrX4dfLsKr2/f5mSPHx/D6SlrX794eNa/b9tsnVgSaoc/viBfsWnKBBTrFoC1bpnxYHaM+8Pyk8cRYgAQB8anZGgOybl6/cf1uiL5o3vhgig7xAjQAzpDDXrqfIzNKX0Vm2dvm/4YQDAFjKStstK1N07F+jq+Q2q6AyEjwDoQ8QIECNCNqCny89TWcpk7ZR9ohzjDR8BAPQBx0gHD0nVpNwknTS7Rq0Bly1/gX5CjAAxIGC7NbP6erkKaq/8swkRAOhnXmN0wTbZmpSdqBu+aFTQ3fwnQgHYNGIEiAGLWl/V2q55OrnsX0r2ZIYfBgD0gySP0RXb5+qL5h79c2kLO2wB/YAYAaKYa0P6svUVvVpzvQ4pvkY+JzF8BADQjzJ9jm6fVKCZa9v1yIoW+SkSoE8RI0CUsnLVHFir6dVX6uShD6kkeTueJQIAA8wYaWS6T/fsUqhnytu5OgL0MWIEiEpWLYEq/Wft+don/wIVJm/N8ywAIIIyEhyZ3ufAAOg7nN0AUagn1KFnKi5QWfJk7Zh1FCECAAAGJc5wgCjj2qDerr9Tmb4iHVB4kTzGFz4CAAAwKBAjQBRxbUhv1/1di9ve0C8KL2MLXwAAMKgRI0CUsLJa2v625re8qFPKHlW6ryB8BAAAYFAhRoAoUd31pV6svExHlN6srIRSds4CAACDHjECRIEG/yr9Z+3Z+nnBBRqWMlmGEAEAAHGAGAEiyMoqaP2aVnm5JmWdoB2zjiZEAABA3CBGgAjyux16bu1FSvJkaKecE+UYT/gIAADAoEWMABFi5WpO0xPqCjXr8JIbleCkhI8AAAAMasQIEAGuDWlJ65v6uPHfOqz4OiV7MlmwDgAA4g4xAgw4q/KuT/VS9RU6qvQ2ZScMZZ0IAACIS8QIMKCs2oP1erHyMh1WPFXDUiaFDwAAAMQNYgQYQK3BWv1r9UnaIfNIjUrbg1uzAABAXCNGgAEScLv139o7NCxlon6a93t5jS98BAAAIK4QI8AACFm/3qi9Vc2Bcv2i8FI5xuGqCAAAiHvECNDPrFzNa5mmha0v6ajS25TkySBEAAAAiBGgf1m5Ku/8XB80PKyTyx5RqjcvfAQAACBuESNAP7Gyqu9ZqQdWH6298/+ogqTRbOELAADwLcQI0E8CbpemV12pg4qu0rYZ+8uRJ3wEcci1rkJuUCEbCj+EKOZaye9aBa2VteFHJSspZKWAa+V3rQJfz4YPAgDWQ4wA/SBk/Xr0q18rO2Gods4+SYZvNUiy1uq1lc/p6Gcn6S+zzhSnqrHBSrp1Qb0yHl2sX/53rYIbqZGekNU/vmzQ5BdWKuPRxSp9cql+O6tSVR2B8FEAwLdwhgT0MStXr9bcoiRPuvYvvESO4YoI1vGHuvVJ1dtyHI+WNy1UXUcVQRIDGntCmlHRrgTH6O3qDq3tDK53vCvo6urPanXFZ3XaJjtRN+9UqF+OytRbVR069d1K9YT4fwwAm0KMAH3ItUEtafuvlrfP0rFD7lKKJyt8BHGsuadBK5sWaYf8XZXiS9MLSx6R3chP2RFdFjX1aEWrX/sWpcrI6LFlzesdr+0O6ZWKDk3ISdI/divWH7fN0a07F+r8cbn6oLZLL61pXW8eAPA/xAjQR6xcLWl/S89UnK0jS2+Wz0lmC198w1qrL+vmqivYqRPGnanhmWP0WfV7avOvf2KL6PNeTadCVrpyYp6Gpfn0Xm2XWvzuN8fTvI5OG5ulC8flKjPBI8dIjjE6YWSmZKTaLtYHAcCmECNAH+kOtWp61ZU6c9QrKk0ez85ZWE/IBvXGyuc0InOshmeN0Y5Fu6uxu1arm5eGjyKKuFZ6aU2bJuYkaUJusvYvSdWi5h4tb+35ZiY3yaOzts3RIcPS5en9trdW+qC2U9ZKiR4+agFgU3iHBLaQlVWTv1z3rjpKe+adqeyEIYQINrC0YYEWN36uPYYdKMd4NLl4DznGo/m1H7GzVpSyVnqtol2LWvw6ZXSmjJFOGZ0lv2s1q7pzvVnzreugVlJlZ0DXf16v4Wk+nbRV5nqzAID/IUaALWIVsn5Nq7pC26YfoMnZJ7BzFjZgrdWHa99QakK6ts7dQcYY5SQXaFzeZH209i25LjESjVxJDy9v1pAUrybnJUuSRmYkaFxWop5c0SJ3E8t9uoOubpnfoKVtfl0yIU9e3hIAYJN4iwS2QMD1642aW5ToJGvfgvPlMb7wEUCN3bWaX/uxrLX6pOodTV/2mGYsf1KJ3iSVt63UZ9Xvh38JosCKVr8+qO2SjPTcV236x6JG3bO4UT6P0Rctfr1d1bHBM0cqOwO68rM6PftVqy4cl6PDy9LlMVwpBYBNIUaAzWRl9UHjQ5rb/IwOK54qj/GGjwCSpNqOSlW2f6VWf7MeX/h3Pfj5zXpo3i16v+I1WWs1fdnjbPEbZaykJS09avKHtKzVr6s+q9Of5tTq4jm1+m9Vh1xr9dCyZoV6/79ZSW0BV3+cXa37lzTp3G1zdNmEfKX5+JgFgO/CuySwmZa2v60vWmfozFEzlOLNZucsbNJbq6fJa7y698AZevrIT/T0UeteT0z5QHuVHaxVLYu0vPGL8C9DBAVdqydWtCjZY7Rwyig1njRWjb9c91p7/BjtW5KqD2u7tLotsG6NSEdAZ75fpc8bu3XnT4p0/rhceR3eEwDg+xAjwI9k5aqya6EeW3O69iv8kzJ8xYQINsrKKmSD+mDt69o2b5IK04bI50mQz1n3SvKmaMei3dUT7GJXrSgTstIblR3avyRNZWk+JXrMN6+sRI/2K0lTbXdQa9oDqu8O6twPq/VyRbumTirQlOEZCrhWXUFXXUFXgU0tLgEAECPAj2Fl1Rqo0QuVF+uIkhs0KnU3ds7Cpllp+tLHFQj1aO/hh2zwd8XIaMei3ZTkTdV75a+sdwyRYyVNnVsnV9LZ2+VscIXDSDq0LE0+x+i+xU1a1urXjIoOdYesfvtelQofX6rcx/73Gv3M8vW+HgDwP8by+F/gB/O7nXp49S81Nn1f7ZF3hhzjCR9BHKjsXqi7lh+i68et/N7d09r8LeoKdCgrKVcJnsTww5Kk+s5qGWOUm1wYfggRUtcdVFfQqiTFu0GMqDdYyjsC8hqjnESPqjqD4SPf8BipLO2Hb25hJS1q8evk2VV6f/8yJX398BJEjJXU7A/ppPer9cyeJUrm/wnQZ777UxTAN/xup16uukap3hz9JPfXcgzfPvh+6QmZKkgt2WSISFJeShEhEmXyk7wqS/NtNETUe3WkLNWnkhSvkjxGI9J9m3z9mBABgHjD2RTwA1i5+rTpP2oL1uuo0tuV6KSxTgQAAGALESPA93BtSAtbXtZ79ffogMI/KcmTET4CAACAzUCMAN/ByqqmZ7Fm1lynk4c9pIKk0eEjAAAA2EzECPAdmvzl+k/FeTqw8M8qTBr7vYuVAQAA8MNxZgVsQnuwQU9XnKcJWVO0bcYvCBEAAIA+xtkVsBFB26M3a29VcdI22jPvD/IYdsMBAADoa8QIECZk/Xqt5ibV9izVzwsu2OBBdQAAAOgbxAjwLa4N6cvWV7W8/W2dOPQBpXhz2MIXAACgnxAjQC8rq9Wdc/RG7d90ZOltSvFmclUEAACgHxEjgCTJqqFnpZ5de4H2yT9HQ5J3YME6AABAP+NsC5BVj9ulFyov1p55Z2h85qHhAwAAAOgHxAjiXo/boSfL/6AsX6kmZh0jY/i2AAAAGAicdSGuuTakWfX/lM+k6JDi6+RzksJHAAAA0E+IEcQtK1fzWl7QwpaXdWjJtUrypIWPAAAAoB8RI4hLVlZL297WW7W369ghdyrNm8cWvgAAAAOMGEHcsXLVEWzQ9KordOyQu1SSvB1b+AIAAEQAMYK4YmXV5K/QA6uO1a65v1FJ8ji28AUAAIgQzsIQV0I2oNdrb9G4zIO1a+6p8hhf+AgAAAAGCDGCuBG0PZpRdY1Cbo/2yPsDt2YBAPqctdLnjd267JNa/WlOzXqvfyxq1OyaTrk2/KuA+EWMIC5Yufqk8UktantVRw35qxKdVBasAwD6nJW0tKVHdy9q1H2Lm/TIshY9sqxFDy5t1uWf1umg19bogg+r1RpwRZMAxAjigJWr5e3v6ZPmJ3XaiGeU6KSHjwAA0KeMpIvH56nmxDGqOXGMPj9ipB7Zo0Q/L0nVg8ubde3cWrmWHAGIEQx6Vd2LdM/KKTqo6ErlJJSFHwYAoN8NSfXp0GHpevxnQ/TT/BTdu6RZ71R1hI8BcYcYwaDWEWzQzKprdErZvzQidRd2zgIARIyR5DVGF47PVaJj9EoFMQJwZoZBycrK73bq/lVHaUjKDhqfeQghAgCIOCMpJ9GjVK+jRS3+8MNA3OHsDIOSa0OaWX2dipK21t75Z8sx3vARAAAGnlkXJLb3B2dAvCNGMOi4NqRPm59STc8KHVl6mxKdtPARAAAiiv0cgXWIEQwqVq6+aJ2h12pu1mHF18jnJPGWDwCIGtZKzX5XXSFXYzISwg8DcYcYwSBi1Rqo0Ws1N+kPI59XUdJY1okAAKKGa6WQtXpgSZO6Q1b7l3LlHuBMDYOEVYP/K9278nDtnX+28hJGckUEABBRtjdAXCvVdgX1cV2XzppdpRfWtOn4ERnatyQ1/EuAuEOMYFDwu516puJC7ZF/pnbImhJ+GACAAWUl3fVlo8Y9t0LjnluhXaev1hFvlOvJVa06fkSGrptcIK/DD80AYgQxr8dt18zq65SfOEK7ZJ8kj/GFjwAAMCCMkYalJej4kZk6aEiadi1I1q4Fydq7KEXnbJej5/cZont2L1Zeopfr9wAxglgXsgG9W3+Pyrs+0y+KLpMxHm7PAgBEjJG0S36y7t29WP/ao2S912UT8rRvaZq8jpHhowqQiBHENqtFba9rWdssnTrscaV4smUIEQAAgJhBjCAmWbla0fGBXqi8RAcXX60Ub074CAAAAKIcMYKYY2XV5C/XzOprdUTJTRqSvANXRAAAAGIQMYIYY9UdatFT5Wdph8wp2jZ9fznGEz4EAACAGECMIKb43W69UHmJshOGaNfcUwkRAACAGEaMIGZYWb1T93c58mpK6a1s4QsAABDjiBHEhJAN6LPmZzSvZZr2K/yTEh2eWgsAABDriBFEPStX5Z2faVbd33Vy2f3KThjKs0QAAAAGAWIEUa++Z5WeWXueDin+iwqSxrBzFgAAwCBBjCCKWbUEqvR0xTn6ae7vNTJ1Nxn+ygIAAAwanNkhKllZ+d1uvVZ7i7ZK20s755zEgnUAAIBBhhhBVAq6PXq1Zqo6gvXaI+90OcYbPgIAAIAYR4wg6li5WtA6TSva39OJQ+9RiicrfAQAAACDADGCKGO1uO1NvVt/r04Y+k/5nBR2zgIAABikiBFEDSurqu5FeqbiIh1UdLUKksaycxYAAMAgRowgKlhZdQQb9VLlZTq4+M/aKm13QgQAAGCQI0YQFfxuhx756pcqTh6nCZmHs4UvAABAHOCMDxEXskG9XnOzChO31gGFl7FzFgAAQJwgRhBRrg3pk6YntLrzUx1UfLUSnGRuzwIAAIgTxAgixsrVl62v6P2Gf+mo0pt7t/AlRAAAAOIFMYKIsLJqDzbopao/61dlD6koadvwEQAAAAxyxAgiwKq+Z6X+ufJQ7VdwkbIThnJrFgAAQBwiRjDgQjaol6qu0E9z/6CJ2cexYB0AACBOESMYUH63U8+vvVhp3gLtlHOCHOMJHwEAAECcIEYwYFyF9F79P1XRPU+HF18rr0kMHwEAAEAcIUYwIFwb0uLWN7Sk7S39dviTSvCkhY8AAAAgzhAj6HdWrr7qnKNH15yqg4uvUZo3lwXrAAAAIEbQ/1oC1Xqt5hb9atijKkuZKMNfOwAAABAj6F9WXaEW3bfyMI1N31tj037GQw0BAADwDWIE/cQqaAOaXnWFhqf+RLvnnc7OWQAAAFgPMYJ+4VpXb9f9XV2hVk0puUU+kxQ+AgAAgDhHjKDPWbn6pPkpfdT4mA4uvkY+hxABAADAhogR9Lmq7i/1YcODOmPk88pJKGOdCAAAADaKGEGfsXJV071ED68+UfsUnK/shCFs4QsAAIBNIkbQJ6ysukKtem7t/9N+hZdom/T92MIXAAAA34mzRfSJnlCbXq6+RkNSJmtS1nHymITwEQAAAGA9xAi2WND26PXam9UWqNXPC86TMfy1AgAAwPfjrBFbxMrVF62vqLJroU4ue0DJnizWiQAAAOAHIUaw2axcfdn6mmZW/0WHFl8nn5McPgIAAABsEjGCzWRV17NcM2um6vgh/1Rx8rbhAwAAAMB3IkawWVoDtfpPxbnaO+8sDUudxM5ZAAAA+NE4g8SPZNUVatFzay/QkOQdNTHrGNaIAAAAYLMQI/gRrKxcvVV7uzJ9pTqo6Eo5xsMT1gEAALBZiBH8YCEb1PsND2lp+yz9vPAi+ZzE8BEAAADgByNG8INYuVrWPkvzml/QycMeUJo3lysiAAAA2CLECL6XlVVDz1d6ofIiHVJ8tXIThrNgHQAAAFuMM0p8D6tmf7meKP+d9i+8RGUp7JwFAACAvsFZJb6DVdD69ULl5ZqYdbx2yDqKnbMAAADQZ4gRbFKP26EXKy9VmjdPk3KOlSNP+AgAAACw2YgRbJRrQ/q86VnVdC/VUaW3KNFJCx8BAAAAtggxgo2wmt86TZ80P6njh94tx3i4PQsAAAB9jhjBeqysyrs+14trL9ZRpbcrO6GMLXwBAADQL4gRfMPKVUugUjOrr9cxQ+5SQeJorogAAACg3xAj6GXVHWrTQ6tP0Oi0PbV1+r5yDAvWAQAA0H+IEUi9C9Zfq7lJI1J21Z55Z8gx3vARAAAAoE8RI5CV1Ru1t6vBv0oHFl0hDyECAACAAUCMxDkrV3Obn9Wittd1eMmNSvSwhS8AAAAGBjES16waelbrnbo7dVLZvcr2lcrK5cWL13e8XIVkrZVkw7+hgL5j1/0Ns5JcyyvSL9v7Mob9JYG+Zuy6T1XEIStX85tfUsB2yrWuQjYQPgIgjJXUGqzWF60zdcHot9lxDn3OWum/NZ06/aMa3T4pXz6Hv2ORZiTlJ3q0oLlHvxyRwf8ToA8RI3HNysqqPVivz5qfUcDtCR8AsFFWW6ftoyEpO4QfALaYlfRCebvuXNys4alecd4beUbSXoUpOnFEhhyujgB9ihjBN1HCXwXghzPG4aoI+oXtvToS4j05ahhJjjHcpgX0A2IEAAAAQESwgB0AAABARBAjAAAAACKCGAEAAAAQEcQIAAAAgIggRgAAAABEBDECAAAAICLY2heIUrUdlWrsqpXV/75FPY5X6QlZKkwtlWP4WQKA6GIlLWjsVmfw2+9cUqLHKD/Ro9JU3zcPcbSSgq5VeXtAjf6QAq6U4BgVp3hVlMzDHoF4QYwAUerhebfp+SUPyhjT+8gtyev4lJtcoANHHa/DxpxMkACIKiFrtetLq7SgqUeSvnkwaIrXaFiqT1MnFeiAIWkyRnKt9NDSJt3+RaMqO4PqDlkle4y2ykjQtRPztd+QNB4wCMQBzmSAKJbkTdaVP71Hzx79mZ49eq6u3uNeJXtT9MQXd+vz6tnh4wAQFUpTvKr/5Vi1nbK1Wk8Zq5smF6i6O6hLPqlVkz8kSWr2h3TV3DplJTiatt9QtZ48VvftXqyarqBumt+g5p51cwAGN2IEiGpGxjhy5JHHeLRt/o76xajjFHQDqu6oCB8GgKjhGCOPkbzG6JTRWfpFSZrKOwLqCa27heudqg51h6yum1Sg3QpS5HGMDhuWrl0LkrWmI6C1ncHwfyWAQYgYAWKMYzxyjEcpvrTwQwAQlYzWrQdJ8zny9N57ddiwdFUcP0Z7FqXKMetmfI5RstdR0FoFXe4iB+IBMQJEOWtduXLl2pBWNS/Vf1dPU2pChrbK3i58FACihrVWrpVCVppR3q4Za9s1MTdJqT5HRpLHGCV5zHoL2ht6QlrS4le6z1FmAqcoQDxgATsQpR6ed5ueX/qgTO8/6v2wzk8u0uk7Xqodi3aXz5MQ/mUAEDHhC9jXZYdkZTUhO0m3/6RQO+Uny2M2XJoestL9ixt12ad1OnubbF09qYAF7EAcIEaAKPXwvNs0ffn/6YCRx2hIxkgZGQXdgD6oeFM1HeWasvVvdNCo43t32wKAyPs6Rso7grpih3z5ei9uVHYGNe2rNhkj3bJTofYqXndr1teC1urZVa266ONa7VGUrH/sVqzMBM//BgAMWsQIEKUennebZq54Upfs9jftULirjDGysgq5QV39zu9V01Ghfx48Ux7DBzaA6PB1jDT2hLTgyK2U3LtAJGQlf8jVLtNWKcFj9MGhI+TrrRG/a/XgkiZdObdOO+Um66E9S5Sf7OWqCBAnuCETiCFGRl7Hp+3yJ6upp0HrfpbAzxMARDePkbyO0ZjMBC1t9evrtendIVd/W9igqfPqdfyIDN3302JCBIgzxAgQQ6y16gp2am71+0rxfv1AMD62AUS3gGvVFnD1RVOPipPWxUbAtfrXkmbdvKBBh5el68adClWS6uMdDYgz3KYFRKmH592ml5Y9ql1K91VBaknvmpGgvqj7VOWtK3TY6JN10vZny/AUdgBR4uvbtFa1BfSbMVny9t6KVdcd0nvVnWr1h3TbLkU6cni67lvSpKs+q5ORdMyIDGUmePT1EjgjaZf8ZB1alr7+bwBg0CFGgCj1fwvu1LRl/17vNizHeDQic2vtP/Jo7Vl2oDyOd72vAYBIcq2094xV+qLZr2+fXaR6HU3OTdJ543K1R1GKJOlXs9bq5fL2/w19izHSaWOydONOhVwpAQY5YgQAAABARHB/BwAAAICIIEYAAAAARAQxAgAAACAiiBEAAAAAEUGMAAAAAIgIYgQAAABARBAjAAAAACKCGAEAAAAQEcQIAAAAgIggRgAAAABEBDECAAAAICKIEQAAAAARQYwAAAAAiAhiBAAAAEBEECMAAAAAIoIYAQAAABARxAgAAACAiCBGAAAAAEQEMQIAAAAgIogRAAAAABFBjAAAAACICGIEAAAAQEQQIwAAAAAighgBAAAAEBHECAAAAICIIEYAAAAARAQxAgAAACAiiBEAAAAAEUGMAAAAAIgIYgQAAABARBAjAAAAACKCGAEAAAAQEcQIAAAAgIj4/2cUJvJWQ/muAAAAAElFTkSuQmCC';
+const SCHUIN_VARIANTEN = {
+  '1':  { label:'Nr 1 zoals afgebeeld',      sub:'Stuk links',  verd:'links',  velden:['A','B','C','E'],        hoogte:'A',  breedte:'B'  },
+  '1m': { label:'Nr 1 in spiegelbeeld',      sub:'Stuk rechts', verd:'rechts', velden:['A','B','C','E'],        hoogte:'A',  breedte:'B'  },
+  '2':  { label:'Nr 2 zoals afgebeeld',      sub:'Stuk rechts', verd:'rechts', velden:['A2','B2','C2','D','E2'],hoogte:'A2', breedte:'B2' },
+  '2m': { label:'Nr 2 in spiegelbeeld',      sub:'Stuk links',  verd:'links',  velden:['A2','B2','C2','D','E2'],hoogte:'A2', breedte:'B2' }
+};
+function getSchuin(){ const s3=APP.stap3; if(!s3.schuin) s3.schuin={actief:false,variant:'1',plooi:'schuin',vrijhangen:''}; return s3.schuin; }
+function schuinActief(){ const m=APP.stap2?.model?.id; const sc=APP.stap3&&APP.stap3.schuin; return !!(sc&&sc.actief&&(m==='plooi'||m==='wave')); }
+function schuinVerstek(){ return schuinActief() && APP.stap2.model.id==='plooi' && getSchuin().plooi==='verstek'; }
+function schuinExtraHoogte(isHoogtestof){ return (schuinVerstek() && !isHoogtestof) ? 30 : 0; }
+function syncSchuin(){
+  if(!schuinActief()) return;
+  const sc=getSchuin(); const v=SCHUIN_VARIANTEN[sc.variant]||SCHUIN_VARIANTEN['1'];
+  const b=parseFloat(String(sc[v.breedte]||'').replace(',','.'))||0, h=parseFloat(String(sc[v.hoogte]||'').replace(',','.'))||0;
+  APP.stap3.maten.breedte=b>0?String(b):''; APP.stap3.maten.hoogte=h>0?String(h):'';
+  APP.stap3.verdeling=v.verd;
+  if(APP.stap2.model.id==='wave' && !APP.stap3.maten._waveFactorManual) APP.stap3.maten.plooiPercentage = b>=200?220:240;
+}
+function schuinPlooisoort(){ const sc=getSchuin(); if(APP.stap2?.model?.id==='wave'){ return 'Wave '+((APP.stap3.typeSpecific?.runnerafstand)||8); } const t={enkel:'Enkele plooi',vlinder:'Vlinderplooi'}[APP.stap3.typeSpecific?.plooitype]||'Enkele plooi'; return t+(sc.plooi==='verstek'?' in verstek':' schuin'); }
+function schuinRows(s3){
+  const sc=s3.schuin; const v=SCHUIN_VARIANTEN[sc.variant]||SCHUIN_VARIANTEN['1']; const out=[];
+  out.push(['Schuin gordijn:',`${v.label} (${v.sub.toLowerCase()})`]);
+  v.velden.forEach(l=>out.push([`Lengte ${l}:`,`${sc[l]||'—'} cm`]));
+  const wave=(s3.typeSpecific&&s3.typeSpecific.runnerafstand&&false);
+  out.push(['Plooisoort:', (APP.stap2?.model?.id==='wave' ? 'Wave '+((s3.typeSpecific?.runnerafstand)||8) : ({enkel:'Enkele plooi',vlinder:'Vlinderplooi'}[s3.typeSpecific?.plooitype]||'Enkele plooi')+(sc.plooi==='verstek'?' in verstek':' schuin'))]);
+  if(sc.plooi==='verstek' && APP.stap2?.model?.id==='plooi') out.push(['Verstek (banenstof):','+30 cm in de hoogte meegerekend']);
+  out.push(['Vrijhangen:', sc.vrijhangen||'—']);
+  return out;
+}
+function setSchuin(on){
+  const sc=getSchuin(); sc.actief=!!on;
+  if(on){ const t=APP.stap3.typeSpecific?.plooitype; if(APP.stap2?.model?.id==='plooi' && (t==='tri'||t==='geen')){ APP.stap3.typeSpecific.plooitype='enkel'; } }
+  else { APP.stap3.maten.breedte=''; APP.stap3.maten.hoogte=''; APP.stap3.verdeling=''; }
+  syncSchuin(); buildStap3(); renderSchuinKeuze(); updateSections();
+}
+function setSchuinVariant(v){ getSchuin().variant=v; syncSchuin(); buildStap3(); updateSections(); }
+function setSchuinPlooi(v){ getSchuin().plooi=v; syncSchuin(); buildStap3(); updateSections(); }
+function setSchuinVeld(k,val){ getSchuin()[k]=val; syncSchuin(); const el=document.getElementById('schuinSamenvatting'); if(el) el.innerHTML=schuinSamenvattingHTML(); s3recalc(); updateSections(); }
+function schuinSamenvattingHTML(){ const sc=getSchuin(); const v=SCHUIN_VARIANTEN[sc.variant]; const b=APP.stap3.maten.breedte, h=APP.stap3.maten.hoogte; return `Berekening met <strong>breedte ${v.breedte} = ${b||'—'} cm</strong> × plooifactor en <strong>hoogte ${v.hoogte} = ${h||'—'} cm</strong>${schuinVerstek()?' <strong>(+30 cm verstek bij banenstof)</strong>':''}.`; }
+function renderSchuinKeuze(){
+  const el=document.getElementById('schuinKeuze'); if(!el) return;
+  const m=APP.stap2?.model?.id; if(m!=='plooi'&&m!=='wave'){ el.style.display='none'; el.innerHTML=''; return; }
+  const on=schuinActief();
+  el.style.display='block';
+  el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1.5px solid ${on?'var(--terracotta)':'var(--border)'};border-radius:10px;background:${on?'rgba(209,106,73,0.06)':'var(--surface)'}"><div><div style="font-size:13px;font-weight:500;color:var(--text)">Schuin gordijn (trapezium raam)?</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px">${on?'Breedte en hoogte van het standaard gordijn vervallen: vul bij Maten (stap 3) de lengtes A t/m E in.':'Voor ramen met een schuine zijde. Dan geef je schuine maten op in plaats van breedte en hoogte.'}</div></div><div style="display:flex;gap:8px"><button class="btn-tile${on?'':' selected'}" onclick="setSchuin(false)">Nee</button><button class="btn-tile${on?' selected':''}" onclick="setSchuin(true)">Ja</button></div></div>`;
+}
+function buildSchuinForm(){
+  const sc=getSchuin(); const v=SCHUIN_VARIANTEN[sc.variant]||SCHUIN_VARIANTEN['1']; const isPlooi=APP.stap2.model.id==='plooi';
+  const tiles=Object.keys(SCHUIN_VARIANTEN).map(k=>{const x=SCHUIN_VARIANTEN[k];return `<button class="btn-tile${sc.variant===k?' selected':''}" onclick="setSchuinVariant('${k}')">${x.label}<span style="display:block;font-size:10px;color:var(--text-dim)">${x.sub}</span></button>`;}).join('');
+  const velden=v.velden.map(l=>`<div class="field"><div class="field-sublabel">Lengte ${l} *${(l==='E'||l==='E2')?' <span style="font-weight:400;color:var(--text-dim)">(mag 0 zijn)</span>':''}</div><div class="input-wrap"><input type="number" class="custom-input has-unit" min="0" step="0.5" value="${(sc[l]===undefined||sc[l]===null?'':sc[l]).toString().replace(/"/g,'')}" oninput="setSchuinVeld('${l}',this.value)"><span class="input-unit">cm</span></div></div>`).join('');
+  const plooiKeuze=isPlooi?`<div class="field-group"><div class="field-label">Plooien</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-tile${sc.plooi!=='verstek'?' selected':''}" onclick="setSchuinPlooi('schuin')">Plooien schuin<span style="display:block;font-size:10px;color:var(--text-dim)">+105% op confectie</span></button><button class="btn-tile${sc.plooi==='verstek'?' selected':''}" onclick="setSchuinPlooi('verstek')">Plooien in verstek<span style="display:block;font-size:10px;color:var(--text-dim)">+420% op confectie</span></button></div></div>`:`<div style="font-size:11px;color:var(--text-dim);margin-bottom:12px">Wave ${APP.stap3.typeSpecific?.runnerafstand||8}: runnerafstand kies je bij de wave-instellingen hieronder.</div>`;
+  return `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;margin-bottom:14px;font-size:11px;background:rgba(184,141,112,0.08);border:1px solid rgba(184,141,112,0.25)"><span style="font-size:14px">◣</span><div><strong style="color:var(--text)">Schuin gordijn</strong> <span style="color:var(--text-mid);margin-left:4px">Strakke maten opnemen: geen correctie aftrekken en geen overmaat toevoegen.</span></div></div>
+    <img src="${SCHUIN_IMG}" alt="Maatvoering schuin gordijn: nr 1 (groen) en nr 2 (blauw)" style="display:block;max-width:100%;width:520px;margin:0 auto 14px;border:1px solid var(--border-light);border-radius:8px;background:#fff">
+    <div class="field-group"><div class="field-label">Maatvoering *</div><div style="display:flex;gap:8px;flex-wrap:wrap">${tiles}</div></div>
+    <div class="form-row cols-3" style="margin-bottom:14px">${velden}</div>
+    <div id="schuinSamenvatting" style="font-size:11px;color:var(--text-mid);margin-bottom:14px">${schuinSamenvattingHTML()}</div>
+    ${plooiKeuze}
+    <div class="field" style="margin-bottom:6px"><div class="field-sublabel">Vrijhangen *</div><input type="text" class="custom-input" value="${(sc.vrijhangen||'').replace(/"/g,'&quot;')}" placeholder="bijv. 2 cm vrij van de vloer" oninput="getSchuin().vrijhangen=this.value;s3recalc();updateSections()"></div>`;
+}
 
 // ══ VERMAAKWERK (los traject, geen stofselectie) ══
 function openVermaak(){ document.getElementById('vermaakOverlay').classList.add('open'); document.getElementById('vmFout').style.display='none'; }
